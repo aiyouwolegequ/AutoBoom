@@ -1,14 +1,13 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-cur_dir=`pwd`
 UUID=$(cat /proc/sys/kernel/random/uuid)
 IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 
 rootness(){
 
 	if [ $(id -u) != "0" ]; then
-		echo "错误:该脚本需要root权限运行!"
+		echo "错误:该脚本需要root权限运行!请切换至root权限！"
 		exit 1
 	fi
 }
@@ -28,7 +27,8 @@ tunavailable(){
 
 	if [[ ! -e /dev/net/tun ]]; then
 		echo "错误:无法安装L2TP" 1>&2
-		exit 1
+		any_key_to_continue
+		mainmenu
 	fi
 }
 
@@ -37,6 +37,9 @@ disable_selinux(){
 	if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
 		sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 		setenforce 0
+		echo "SElinux已禁用..."
+		echo ""
+		echo "#######################################################################"
 	fi
 }
 
@@ -60,8 +63,9 @@ get_os_info(){
 	local host=$( hostname )
 	local kern=$( uname -r )
 
+	echo ""
 	echo "################ 系统信息 ################"
-	echo
+	echo ""
 	echo "CPU 型号	: ${cname}"
 	echo "CPU 核心数	: ${cores}"
 	echo "CPU 频率	: ${freq} MHz"
@@ -74,9 +78,9 @@ get_os_info(){
 	echo "内核		: ${kern}"
 	echo "主机名		: ${host}"
 	echo "IP地址		: ${IP}"
-	echo
+	echo ""
 	echo "########################################"
-	echo
+	echo ""
 	any_key_to_continue
 }
 
@@ -107,6 +111,11 @@ check_sys(){
 	fi
 }
 
+command_exists(){
+
+	command -v "$@" >/dev/null 2>&1
+}
+
 rebootcheck(){
 
 	read -p "刚刚更新了系统内核，是否重启系统 ? (y/n) [默认=n]:" xy1
@@ -124,7 +133,45 @@ rebootcheck(){
 	esac
 }
 
+set_sysctl(){
+
+	for each in `ls /proc/sys/net/ipv4/conf/`; do
+		echo "net.ipv4.conf.${each}.accept_source_route=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.accept_redirects=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.send_redirects=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.rp_filter=0" >> /etc/sysctl.conf
+	done
+
+	echo "net.core.default_qdisc = fq" >> /etc/sysctl.conf
+	echo "net.core.rmem_max = 67108864" >> /etc/sysctl.conf
+	echo "net.core.wmem_max = 67108864" >> /etc/sysctl.conf
+	echo "net.core.somaxconn = 4096" >> /etc/sysctl.conf
+	echo "net.core.netdev_max_backlog = 250000" >> /etc/sysctl.conf
+	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
+	echo "net.ipv4.ip_local_port_range = 10000 65000" >> /etc/sysctl.conf
+	echo "net.ipv4.icmp_echo_ignore_broadcasts=1" >> /etc/sysctl.conf
+	echo "net.ipv4.icmp_ignore_bogus_error_responses=1" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_fastopen = 3" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_fin_timeout = 30" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_max_syn_backlog = 20480" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_max_tw_buckets = 400000" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_keepalive_time = 1200" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_rmem = 4096 87380 67108864" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_wmem = 4096 65536 67108864" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_mem = 25600 51200 102400" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_syncookies = 1" >> /etc/sysctl.conf
+	echo "vm.min_free_kbytes = 65536" >> /etc/sysctl.conf
+	echo "fs.file-max = 51200" >> /etc/sysctl.conf
+}
+
 any_key_to_continue(){
+
 	echo "请按任意键继续或 Ctrl + C 退出"
 	local saved=
 	saved="$(stty -g)"
@@ -247,31 +294,6 @@ updatekernel(){
 	echo "tcp_bbr" >> /etc/modules-load.d/modules.conf
 	sysctl net.ipv4.tcp_available_congestion_control
 	lsmod | grep bbr
-	echo "net.core.default_qdisc = fq" >> /etc/sysctl.conf
-	echo "net.core.rmem_max = 67108864" >> /etc/sysctl.conf
-	echo "net.core.wmem_max = 67108864" >> /etc/sysctl.conf
-	echo "net.core.somaxconn = 4096" >> /etc/sysctl.conf
-	echo "net.core.netdev_max_backlog = 250000" >> /etc/sysctl.conf
-	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-	echo "net.ipv4.ip_local_port_range = 10000 65000" >> /etc/sysctl.conf
-	echo "net.ipv4.icmp_echo_ignore_broadcasts=1" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_congestion_control = bbr" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_fastopen = 3" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_tw_reuse = 1" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_fin_timeout = 30" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_max_syn_backlog = 20480" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_max_tw_buckets = 400000" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_keepalive_time = 1200" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_rmem = 4096 87380 67108864" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_wmem = 4096 65536 67108864" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_mem = 25600 51200 102400" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_syncookies = 1" >> /etc/sysctl.conf
-	echo "vm.min_free_kbytes = 65536" >> /etc/sysctl.conf
-	echo "fs.file-max = 51200" >> /etc/sysctl.conf
 	sysctl -p
 	echo "#######################################################################"
 	echo ""
@@ -722,20 +744,6 @@ install_l2tp(){
 	echo ""
 	any_key_to_continue
 	yum -y install ppp libreswan xl2tpd
-	cp -pf /etc/sysctl.conf /etc/sysctl.conf.bak
-	echo "# Added by L2TP VPN" >> /etc/sysctl.conf
-	echo "net.ipv4.ip_forward=1" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_syncookies=1" >> /etc/sysctl.conf
-	echo "net.ipv4.icmp_echo_ignore_broadcasts=1" >> /etc/sysctl.conf
-	echo "net.ipv4.icmp_ignore_bogus_error_responses=1" >> /etc/sysctl.conf
-
-	for each in `ls /proc/sys/net/ipv4/conf/`; do
-		echo "net.ipv4.conf.${each}.accept_source_route=0" >> /etc/sysctl.conf
-		echo "net.ipv4.conf.${each}.accept_redirects=0" >> /etc/sysctl.conf
-		echo "net.ipv4.conf.${each}.send_redirects=0" >> /etc/sysctl.conf
-		echo "net.ipv4.conf.${each}.rp_filter=0" >> /etc/sysctl.conf
-	done
-
 	sysctl -p
 	systemctl start ipsec
 	systemctl start xl2tpd	
@@ -843,8 +851,7 @@ install_l2tp(){
 	systemctl restart xl2tpd
 	systemctl -a | grep ipsec
 	systemctl -a | grep xl2tpd
-	cd ${cur_dir}
-	rm -rf ${cur_dir}/l2tp
+	cd
 	wget https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
 	chmod +x l2tp.sh
 	./l2tp.sh
@@ -912,6 +919,30 @@ install_vlmcsd(){
 }
 
 install_v2ray(){
+
+	v2ray_install_component(){
+
+		local COMPONENT=$1
+		COMPONENT_CMD=$(command -v $COMPONENT)
+
+		if [ -n "${COMPONENT_CMD}" ]; then
+			return
+		fi
+
+		if [ ${SOFTWARE_UPDATED} -eq 1 ]; then
+			return
+		fi
+
+		if [ -n "${YUM_CMD}" ]; then
+			${YUM_CMD} -q makecache
+		fi
+
+		SOFTWARE_UPDATED=1
+
+		if [ -n "${YUM_CMD}" ]; then
+			${YUM_CMD} -y -q install $COMPONENT
+		fi
+	}
 
 	clear
 	echo "#######################################################################"
@@ -1089,34 +1120,249 @@ install_v2ray(){
 	any_key_to_continue
 }
 
-v2ray_install_component(){
+install_supervisor(){
 
-	local COMPONENT=$1
-	COMPONENT_CMD=$(command -v $COMPONENT)
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装Supervisor"
+	echo ""
+	echo "#######################################################################"
+	echo ""
 
-	if [ -n "${COMPONENT_CMD}" ]; then
-		return
+	SUPERVISOR_SYSTEMD_FILE_URL="${BASE_URL}/startup/supervisord.systemd"
+	BASE_URL='https://github.com/kuoruan/shell-scripts/raw/master/kcptun'
+
+	verify_file(){
+
+		if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
+			if [ "${#verify}" = "32" ]; then
+				verify_cmd="md5sum"
+			elif [ "${#verify}" = "40" ]; then
+				verify_cmd="sha1sum"
+			elif [ "${#verify}" = "64" ]; then
+				verify_cmd="sha256sum"
+			elif [ "${#verify}" = "128" ]; then
+				verify_cmd="sha512sum"
+			fi
+
+			if [ -n "$verify_cmd" ] && ! command_exists "$verify_cmd"; then
+				verify_cmd=
+			fi
+		fi
+
+		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
+			(
+				set -x
+				echo "${verify}  ${file}" | $verify_cmd -c
+			)
+			return $?
+		fi
+
+		return 1
+	}
+
+	download_file_to_path(){
+
+		if verify_file; then
+			return 0
+		fi
+
+		if [ $retry -ge 3 ]; then
+			rm -f "$file"
+			cat >&2 <<-EOF
+			文件下载或校验失败! 请重试。
+			URL: ${url}
+			EOF
+
+			if [ -n "$verify_cmd" ]; then
+				cat >&2 <<-EOF
+				如果下载多次失败，你可以手动下载文件:
+				1. 下载文件 ${url}
+				2. 将文件重命名为 $(basename "$file")
+				3. 上传文件至目录 $(dirname "$file")
+				4. 重新运行安装脚本
+
+				注: 文件目录 . 表示当前目录，.. 表示当前目录的上级目录
+				EOF
+			fi
+			any_key_to_continue
+			mainmenu
+		fi
+
+		( set -x; wget -O "$file" --no-check-certificate "$url" )
+		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
+			retry=$(expr $retry + 1)
+			download_file_to_path
+		fi
+	}
+
+	download_file(){
+
+		local url="$1"
+		local file="$2"
+		local verify="$3"
+		local retry=0
+		local verify_cmd=
+
+		download_file_to_path
+	}
+
+	config_install_supervisor(){
+
+		if [ ! -d /etc/supervisor/conf.d ]; then
+			(
+				set -x
+				mkdir -p /etc/supervisor/conf.d
+			)
+		fi
+
+		if [ ! -f '/usr/local/bin/supervisord' ]; then
+			(
+				set -x
+				ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
+			)
+		fi
+
+		if [ ! -f '/usr/local/bin/supervisorctl' ]; then
+			(
+				set -x
+				ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
+			)
+		fi
+
+		if [ ! -f '/usr/local/bin/pidproxy' ]; then
+			(
+				set -x
+				ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
+			)
+		fi
+
+		local cfg_file='/etc/supervisor/supervisord.conf'
+
+		if [ ! -s "$cfg_file" ]; then
+			if ! command_exists echo_supervisord_conf; then
+				cat >&2 <<-'EOF'
+				未找到 echo_supervisord_conf, 无法自动创建 Supervisor 配置文件!
+				可能是当前安装的 supervisor 版本过低。
+				EOF
+				any_key_to_continue
+				mainmenu
+			fi
+
+			(
+				set -x
+				echo_supervisord_conf >"$cfg_file" 2>/dev/null
+			)
+
+			if [ "$?" != "0" ]; then
+				echo "创建 Supervisor 配置文件失败!"
+				any_key_to_continue
+				mainmenu
+			fi
+		fi
+
+		if ! grep -q '^files[[:space:]]*=[[:space:]]*/etc/supervisor/conf.d/\*\.conf$' "$cfg_file"; then
+			if grep -q '^\[include\]$' "$cfg_file"; then
+				sed -i '/^\[include\]$/a files = \/etc\/supervisor\/conf.d\/\*\.conf' "$cfg_file"
+			else
+				sed -i '$a [include]\nfiles = /etc/supervisor/conf.d/*.conf' "$cfg_file"
+			fi
+		fi
+	}
+
+	download_startup_file(){
+
+		local supervisor_startup_file=
+		local supervisor_startup_file_url=
+
+		if command_exists systemctl; then
+			supervisor_startup_file='/lib/systemd/system/supervisord.service'
+			supervisor_startup_file_url="$SUPERVISOR_SYSTEMD_FILE_URL"
+
+			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
+			(
+				set -x
+				systemctl daemon-reload >/dev/null 2>&1
+			)
+		fi
+	}
+
+	if [ -s /etc/supervisord.conf ] && command_exists supervisord; then
+
+		cat >&2 <<-EOF
+		检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
+		推荐你备份当前 Supervisor 配置后卸载原有版本
+		已安装的 Supervisor 配置文件路径为: /etc/supervisord.conf
+		通过本脚本安装的 Supervisor 配置文件路径为: /etc/supervisor/supervisord.conf
+		你可以使用以下命令来备份原有配置文件:
+
+		    mv /etc/supervisord.conf /etc/supervisord.conf.bak
+		EOF
+
+		any_key_to_continue
+		mainmenu
 	fi
 
-	if [ ${SOFTWARE_UPDATED} -eq 1 ]; then
-		return
+	if [ -s /etc/supervisor/supervisord.conf ]&& command_exists supervisord;then
+		config_install_supervisor
+		download_startup_file
+	else
+		if ! command_exists easy_install; then
+			cat >&2 <<-EOF
+			未找到已安装的 easy_install 命令，
+			请先手动安装 python-setuptools
+			然后重新运行安装脚本。
+			EOF
+			any_key_to_continue
+			mainmenu
+		fi
+
+		if ! ( easy_install --help >/dev/null 2>&1 ); then
+			cat >&2 <<-EOF
+			检测到你的 easy_install 已损坏，
+			通常是由于你自己升级过 python 版本，
+			但是没有将 easy_install 链接到新的地址。
+			需要手动做一个软链接
+			 * ln -s /usr/local/python2.7/bin/easy_install /usr/bin/easy_install
+
+			 "/usr/local/python2.7" 应该为你新版本 python 的路径
+			EOF
+			any_key_to_continue
+			mainmenu
+		fi
+
+		(
+			set -x
+			easy_install -U supervisor
+		)
+
+		if [ "$?" != "0" ]; then
+			cat >&2 <<-EOF
+			错误: 安装 Supervisor 失败，
+			请尝试使用
+			  easy_install -U supervisor
+			来手动安装。
+			EOF
+
+			any_key_to_continue
+			mainmenu
+		fi
+
+		config_install_supervisor
+		download_startup_file
 	fi
 
-	if [ -n "${YUM_CMD}" ]; then
-		${YUM_CMD} -q makecache
-	fi
-
-	SOFTWARE_UPDATED=1
-
-	if [ -n "${YUM_CMD}" ]; then
-		${YUM_CMD} -y -q install $COMPONENT
-	fi
+	echo "#######################################################################"
+	echo ""
+	echo "Supervisor安装完毕."
+	echo ""
+	echo "#######################################################################"
+	any_key_to_continue
 }
 
 install_kcptun(){
 
-	IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
-	key=`randpasswd`
 	SHELL_VERSION=20
 	CONFIG_VERSION=6
 	INIT_VERSION=3
@@ -1127,18 +1373,13 @@ install_kcptun(){
 	KCPTUN_TAGS_URL='https://github.com/xtaci/kcptun/tags'
 	BASE_URL='https://github.com/kuoruan/shell-scripts/raw/master/kcptun'
 	SHELL_VERSION_INFO_URL="${BASE_URL}/version.json"
-	JQ_LINUX32_URL="${BASE_URL}/bin/jq-linux32"
 	JQ_LINUX64_URL="${BASE_URL}/bin/jq-linux64"
-	JQ_LINUX32_HASH='5ac55877f41916b80fe546e16d58678cca9aae6d'
 	JQ_LINUX64_HASH='d8e36831c3c94bb58be34dd544f44a6c6cb88568'
-	JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"
-	SUPERVISOR_SERVICE_FILE_DEBIAN_URL="${BASE_URL}/startup/supervisord.init.debain"
-	SUPERVISOR_SERVICE_FILE_REDHAT_URL="${BASE_URL}/startup/supervisord.init.redhat"
-	SUPERVISOR_SYSTEMD_FILE_URL="${BASE_URL}/startup/supervisord.systemd"
+	JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"	
 	D_LISTEN_PORT=800
-	D_TARGET_ADDR=${IP}
+	D_TARGET_ADDR="${IP}"
 	D_TARGET_PORT=999
-	D_KEY=${randpasswd}
+	D_KEY=`randpasswd`
 	D_CRYPT='salsa20'
 	D_MODE='fast3'
 	D_MTU=1300
@@ -1296,6 +1537,11 @@ install_kcptun(){
 		./kcptun_bin.sh
 		local server_ip=
 		server_ip="${IP}"
+		echo ""
+		echo "请保存好Kcptun配置！"
+		echo ""
+		echo "#######################################################################"
+		echo ""
 		printf "服务器IP: \033[41;37m ${server_ip} \033[0m\n"
 		printf "端口: \033[41;37m ${listen_port} \033[0m\n"
 		printf "加速地址: \033[41;37m ${target_addr}:${target_port}\033[0m\n"
@@ -1324,6 +1570,8 @@ install_kcptun(){
 		${client_config}
 		EOF
 
+		echo ""
+		echo "#######################################################################"
 		local mobile_config="key=${key}"
 		gen_client_configs "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
 			"parityshard" "dscp" "nocomp" "nodelay" "interval" "resend" \
@@ -1470,54 +1718,7 @@ install_kcptun(){
 		EOF
 	}
 
-	download_startup_file(){
 
-		local supervisor_startup_file=
-		local supervisor_startup_file_url=
-
-		if command_exists systemctl; then
-			supervisor_startup_file='/lib/systemd/system/supervisord.service'
-			supervisor_startup_file_url="$SUPERVISOR_SYSTEMD_FILE_URL"
-
-			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
-			(
-				set -x
-				systemctl daemon-reload >/dev/null 2>&1
-			)
-		elif command_exists service; then
-			supervisor_startup_file='/etc/init.d/supervisord'
-
-			if [ -z "$lsb_dist" ]; then
-				get_os_info
-			fi
-
-			case "$lsb_dist" in
-				ubuntu|debian|raspbian)
-					supervisor_startup_file_url="$SUPERVISOR_SERVICE_FILE_DEBIAN_URL"
-					;;
-				fedora|centos|redhat|oraclelinux|photon)
-					supervisor_startup_file_url="$SUPERVISOR_SERVICE_FILE_REDHAT_URL"
-					;;
-				*)
-					echo "没有适合当前系统的服务启动脚本文件。"
-					exit 1
-					;;
-			esac
-
-			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
-			(
-				set -x
-				chmod a+x "$supervisor_startup_file"
-			)
-		else
-			cat >&2 <<-'EOF'
-			当前服务器未安装 systemctl 或者 service 命令，无法配置服务。
-			请先手动安装 systemd 或者 service 之后再运行脚本。
-			EOF
-
-			exit 1
-		fi
-	}
 
 	download_file_to_path(){
 
@@ -1543,7 +1744,8 @@ install_kcptun(){
 				注: 文件目录 . 表示当前目录，.. 表示当前目录的上级目录
 				EOF
 			fi
-			exit 1
+			any_key_to_continue
+			mainmenu
 		fi
 
 		( set -x; wget -O "$file" --no-check-certificate "$url" )
@@ -1610,7 +1812,8 @@ install_kcptun(){
 				当前脚本仅支持 32 位 和 64 位系统
 				你的系统为: $architecture
 				EOF
-				exit 1
+				any_key_to_continue
+				mainmenu
 				;;
 		esac
 	}
@@ -1652,16 +1855,14 @@ install_kcptun(){
 				amd64|x86_64)
 					download_file "$JQ_LINUX64_URL" "$JQ_BIN" "$JQ_LINUX64_HASH"
 					;;
-				i386|i486|i586|i686|x86)
-					download_file "$JQ_LINUX32_URL" "$JQ_BIN" "$JQ_LINUX32_HASH"
-					;;
 			esac
 
 			if ! check_jq; then
 				cat >&2 <<-EOF
 				未找到适用于当前系统的 JSON 解析软件 jq
 				EOF
-				exit 1
+				any_key_to_continue
+				mainmenu
 			fi
 
 
@@ -1670,12 +1871,14 @@ install_kcptun(){
 	}
 
 	is_port(){
+
 		local port=$1
 		is_number "$port" && \
 			[ $port -ge 1 ] && [ $port -le 65535 ]
 	}
 
 	port_using(){
+
 		local port=$1
 
 		if command_exists netstat; then
@@ -1706,7 +1909,6 @@ install_kcptun(){
 		local input=
 		local yn=
 
-		# 设置服务运行端口
 		[ -z "$listen_port" ] && listen_port="$D_LISTEN_PORT"
 		while :
 		do
@@ -2163,11 +2365,6 @@ install_kcptun(){
 		any_key_to_continue
 	}
 
-	command_exists(){
-
-		command -v "$@" >/dev/null 2>&1
-	}
-
 	install_deps(){
 
 		if ! command_exists wget; then
@@ -2262,7 +2459,8 @@ install_kcptun(){
 				可能是 GitHub 改版，或者从网络获取到的内容不正确。
 				请联系脚本作者。
 				EOF
-				exit 1
+				any_key_to_continue
+				mainmenu
 			fi
 		fi
 
@@ -2299,7 +2497,8 @@ install_kcptun(){
 			通常这不会发生，可能的原因是 Kcptun 作者打包文件的时候更改了文件名。
 			你可以尝试重新安装，或者联系脚本作者。
 			EOF
-			exit 1
+			any_key_to_continue
+			mainmenu
 		fi
 
 		chmod a+x "$kcptun_server_file"
@@ -2309,7 +2508,8 @@ install_kcptun(){
 			无法找到适合当前服务器的 kcptun 可执行文件
 			你可以尝试从源码编译。
 			EOF
-			exit 1
+			any_key_to_continue
+			mainmenu
 		fi
 
 		rm -f "$kcptun_file_name" "${KCPTUN_INSTALL_DIR}/client_$file_suffix"
@@ -2324,7 +2524,8 @@ install_kcptun(){
 			安装脚本需要能访问到 github.com，请检查服务器网络。
 			注意: 一些国内服务器可能无法正常访问 github.com。
 			EOF
-			exit 1
+			any_key_to_continue
+			mainmenu
 		fi
 
 		content="$(wget -qO- --no-check-certificate "$url")"
@@ -2394,64 +2595,14 @@ install_kcptun(){
 		fi
 	}
 
-	install_supervisor(){
+	config_install_supervisor(){
 
-		if [ -s /etc/supervisord.conf ] && command_exists supervisord; then
-			cat >&2 <<-EOF
-			检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
-			推荐你备份当前 Supervisor 配置后卸载原有版本
-			已安装的 Supervisor 配置文件路径为: /etc/supervisord.conf
-			通过本脚本安装的 Supervisor 配置文件路径为: /etc/supervisor/supervisord.conf
-			你可以使用以下命令来备份原有配置文件:
-
-			    mv /etc/supervisord.conf /etc/supervisord.conf.bak
-			EOF
-
-			exit 1
+		if [ ! -d /etc/supervisor/conf.d ]; then
+			(
+				set -x
+				mkdir -p /etc/supervisor/conf.d
+			)
 		fi
-
-		if ! command_exists easy_install; then
-			cat >&2 <<-EOF
-			未找到已安装的 easy_install 命令，
-			请先手动安装 python-setuptools
-			然后重新运行安装脚本。
-			EOF
-			exit 1
-		fi
-
-		if ! ( easy_install --help >/dev/null 2>&1 ); then
-			cat >&2 <<-EOF
-			检测到你的 easy_install 已损坏，
-			通常是由于你自己升级过 python 版本，
-			但是没有将 easy_install 链接到新的地址。
-			需要手动做一个软链接
-			 * ln -s /usr/local/python2.7/bin/easy_install /usr/bin/easy_install
-
-			 "/usr/local/python2.7" 应该为你新版本 python 的路径
-			EOF
-			exit 1
-		fi
-
-		(
-			set -x
-			easy_install -U supervisor
-		)
-
-		if [ "$?" != "0" ]; then
-			cat >&2 <<-EOF
-			错误: 安装 Supervisor 失败，
-			请尝试使用
-			  easy_install -U supervisor
-			来手动安装。
-			EOF
-
-			exit 1
-		fi
-
-		[ ! -d /etc/supervisor/conf.d ] && (
-			set -x
-			mkdir -p /etc/supervisor/conf.d
-		)
 
 		if [ ! -f '/usr/local/bin/supervisord' ]; then
 			(
@@ -2482,7 +2633,8 @@ install_kcptun(){
 				未找到 echo_supervisord_conf, 无法自动创建 Supervisor 配置文件!
 				可能是当前安装的 supervisor 版本过低。
 				EOF
-				exit 1
+				any_key_to_continue
+				mainmenu
 			fi
 
 			(
@@ -2492,7 +2644,8 @@ install_kcptun(){
 
 			if [ "$?" != "0" ]; then
 				echo "创建 Supervisor 配置文件失败!"
-				exit 1
+				any_key_to_continue
+				mainmenu
 			fi
 		fi
 
@@ -2503,8 +2656,6 @@ install_kcptun(){
 				sed -i '$a [include]\nfiles = /etc/supervisor/conf.d/*.conf' "$cfg_file"
 			fi
 		fi
-
-		download_startup_file
 	}
 
 	mk_file_dir(){
@@ -2523,7 +2674,7 @@ install_kcptun(){
 		if [ -n "$mod" ]; then
 			chmod $mod "$dir"
 		fi
-		}
+	}
 
 	write_configs_to_file(){
 		install_jq
@@ -2683,7 +2834,8 @@ install_kcptun(){
 			启动 Supervisor 失败, Kcptun 无法正常工作!
 			请反馈给脚本作者。
 			EOF
-			exit 1
+			any_key_to_continue
+			mainmenu
 		fi
 	}
 
@@ -2721,6 +2873,62 @@ install_kcptun(){
 	any_key_to_continue
 }
 
+install_dnscrypt(){
+
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装Dnscrypt"
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	dnscrypt=`randusername`
+	wget https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz -O dnscrypt-latest.tar.gz
+	tar zxf dnscrypt-latest.tar.gz
+	cd dnscrypt-proxy-*
+	./autogen.sh
+	./configure
+	make -j4 && make install
+	git clone --recursive git://github.com/cofyc/dnscrypt-wrapper.git
+	cd dnscrypt-wrapper
+	make configure
+	./configure
+	make install
+	cd
+	rm -rf dnscrypt-*
+	mkdir ~/.dns
+	cd ~/.dns
+	
+	dnscrypt-wrapper --gen-provider-keypair
+	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=${dnscrypt}.key
+	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=${dnscrypt}.key --provider-cert-file=${dnscrypt}.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
+
+	firewall-cmd --permanent --zone=public --add-port=5553/tcp
+	firewall-cmd --permanent --zone=public --add-port=5553/udp
+	firewall-cmd --reload
+	install_supervisor
+
+	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
+	[program:dnscrypt]
+	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5553 --provider-name=${dnscrypt}.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/${dnscrypt}.key --provider-cert-file=/root/.dns/${dnscrypt}.cert
+	startsecs = 5
+	autostart = true
+	startretries = 3
+	user = root
+	EOF
+
+	supervisorctl update
+	supervisorctl reread
+	supervisorctl status
+	echo "#######################################################################"
+	echo ""
+	echo "Dnscrypt安装完毕."
+	echo ""
+	echo "#######################################################################"
+	show_current_instance_info
+	any_key_to_continue
+}
+
 clearsystem(){
 
 	clear
@@ -2751,9 +2959,7 @@ clearsystem(){
 install_all(){
 
 	clear
-	rootness
 	tunavailable
-	disable_selinux
 	updatesystem
 	updatekernel
 	changerootpasswd
@@ -2766,7 +2972,9 @@ install_all(){
 	install_l2tp
 	install_vlmcsd
 	install_v2ray
+	install_supervisor
 	install_kcptun
+	install_dnscrypt
 	clearsystem
 	finally
 }
@@ -2823,10 +3031,12 @@ finally(){
 		init 6
 		;;
 		n|N)
-		exit
+		any_key_to_continue
+		mainmenu
 		;;
 		*)
-		exit
+		any_key_to_continue
+		mainmenu
 		;;
 	esac
 }
@@ -2848,28 +3058,20 @@ submenu1(){
 		mainmenu
 		;;
 		1)
-		rootness
-		disable_selinux
 		updatesystem
 		updatekernel
 		clearsystem
 		rebootcheck
 		;;
 		2)
-		rootness
-		disable_selinux
 		updatesystem
 		submenu1
 		;;
 		3)
-		rootness
-		disable_selinux
 		updatekernel
 		rebootcheck
 		;;
 		4)
-		rootness
-		disable_selinux
 		clearsystem
 		submenu1
 		;;
@@ -2895,21 +3097,15 @@ submenu2(){
 		mainmenu
 		;;
 		1)
-		rootness
-		disable_selinux
 		changerootpasswd
 		add_newuser
 		submenu2
 		;;
 		2)
-		rootness
-		disable_selinux
 		changerootpasswd
 		submenu2
 		;;
 		3)
-		rootness
-		disable_selinux
 		add_newuser
 		submenu2
 		;;
@@ -2935,7 +3131,9 @@ mainmenu(){
 	echo "(9) 安装l2tp"
 	echo "(10) 安装vlmcsd"
 	echo "(11) 安装v2ray"
-	echo "(12) 安装kcptun"
+	echo "(12) 安装supervisor"
+	echo "(13) 安装kcptun"
+	echo "(14) 安装dnscrypt"
 	echo ""
 	echo "#######################################################################"
 	read -p "请选择要执行的模块？[默认=1]:" xx
@@ -2954,57 +3152,48 @@ mainmenu(){
 		submenu2
 		;;
 		4)
-		rootness
-		disable_selinux
 		install_ckrootkit_rkhunter
 		mainmenu
 		;;
 		5)
-		rootness
-		disable_selinux
 		install_fail2ban
 		mainmenu
 		;;
 		6)
-		rootness
-		disable_selinux
 		install_lynis
 		mainmenu
 		;;
 		7)
-		rootness
-		disable_selinux
 		install_zsh
 		mainmenu
 		;;
 		8)
-		rootness
-		disable_selinux
 		install_shadowsocks
 		mainmenu
 		;;
 		9)
-		rootness
-		disable_selinux
+		tunavailable
 		install_l2tp
 		mainmenu
 		;;
 		10)
-		rootness
-		disable_selinux
 		install_vlmcsd
 		mainmenu
 		;;
 		11)
-		rootness
-		disable_selinux
 		install_v2ray
 		mainmenu
 		;;
 		12)
-		rootness
-		disable_selinux
+		install_supervisor
+		mainmenu
+		;;
+		13)
 		install_kcptun
+		mainmenu
+		;;
+		14)
+		install_dnscrypt
 		mainmenu
 		;;
 		*)
@@ -3021,5 +3210,8 @@ echo "GO GO GO..."
 echo ""
 echo "#######################################################################"
 echo ""
+rootness
+disable_selinux
+set_sysctl
 get_os_info
 mainmenu

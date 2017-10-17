@@ -1,7 +1,8 @@
 #!/bin/bash
-export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
 IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
+KEY=$(cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12)
 SHELL_VERSION=20
 CONFIG_VERSION=6
 INIT_VERSION=3
@@ -23,7 +24,7 @@ SUPERVISOR_SYSTEMD_FILE_URL="${BASE_URL}/startup/supervisord.systemd"
 D_LISTEN_PORT=800
 D_TARGET_ADDR=${IP}
 D_TARGET_PORT=999
-D_KEY=$(cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12)
+D_KEY=${KEY}
 D_CRYPT='salsa20'
 D_MODE='fast3'
 D_MTU=1300
