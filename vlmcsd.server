@@ -1,21 +1,7 @@
 #!/bin/bash
-# Start/stop vlmcsd.
-#
-#====================================================================
-# Run level information:
-# chkconfig: 2345 99 99
-# Description: vlmcsdmulti-x64-musl-static
-# processname: vlmcsd
-# Run "/sbin/chkconfig --add vlmcsd" to add the Run levels.
-#====================================================================
 
-# Note: this script requires sudo in order to run vlmcsd as the specified
-# user. 
-
-# Source function library
 . /etc/rc.d/init.d/functions
 
-# Check that networking is up.
 [ ${NETWORKING} ="yes" ] || exit 0
 
 BIN=/usr/local/bin/vlmcsdmulti-x64-musl-static
@@ -26,6 +12,7 @@ RET_VAL=0
 [ -x $BIN ] || exit 0
 
 check_running() {
+
   if [[ -r $PID_FILE ]]; then
     read PID <$PID_FILE
     if [[ -d "/proc/$PID" ]]; then
@@ -40,7 +27,9 @@ check_running() {
 }
 
 do_status() {
+
   check_running
+
   case $? in
     0)
       echo "vlmcsd running with PID $PID"
@@ -52,32 +41,37 @@ do_status() {
       echo "Could not find PID file $PID_FILE, vlmcsd does not appear to be running"
       ;;
   esac
+
   return 0
 }
 
 do_start() {
+
   if [[ ! -d $PID_DIR ]]; then
     mkdir $PID_DIR || echo "failed creating PID directory $PID_DIR"; exit 1
   fi
+
   if check_running; then
     echo "vlmcsd already running with PID $PID"
     return 0
   fi
+
   echo "starting vlmcsd"
-  # sudo will set the group to the primary group of $USER
   $BIN vlmcsd > /dev/null 2>&1 &
   pgrep vlmcsdmulti > $PID_FILE
   sleep 0.3
+
   read PID <$PID_FILE
-  if ! check_running; then
-    echo "start failed"
-    return 1
-  fi
-  echo "vlmcsd running with PID $PID"
-  return 0
+    if ! check_running; then
+      echo "start failed"
+      return 1
+    fi
+    echo "vlmcsd running with PID $PID"
+    return 0
 }
 
 do_stop() {
+
   if check_running; then
     echo "stopping vlmcsd with PID $PID"
     kill $PID
@@ -88,6 +82,7 @@ do_stop() {
 }
 
 do_restart() {
+  
   do_stop
   do_start
 }
