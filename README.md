@@ -12,9 +12,9 @@ chmod +x gogogo.sh
 (7) 安装zsh      
 (8) 安装shadowsocks      
 (9) 安装l2tp       
-(10) 安装vlmcsd      
-(11) 安装v2ray       
-(12) 安装supervisor       
+(10) 安装v2ray      
+(11) 安装supervisor       
+(12) 安装vlmcsd       
 (13) 安装kcptun      
 (14) 安装dnscrypt         
 
@@ -37,7 +37,10 @@ Supervisor 命令:
 service supervisord {start|stop|restart|status}        
 
 Kcptun 相关命令:      
-supervisorctl {start|stop|restart|status} kcptun<id>      
+supervisorctl {start|stop|restart|status} kcptun<id>         
 
 Dnscrypt 相关命令:    
 supervisorctl {start|stop|restart|status} dnscrypt       
+
+Vlmcsd 相关命令:     
+supervisorctl {start|stop|restart|status} vlmcsd   

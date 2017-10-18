@@ -246,6 +246,10 @@ pre_install(){
 	echo "预安装相关软件！"
 	echo ""
 	echo "#######################################################################"
+	cat >/etc/profile<<-EOF
+	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+	EOF
+	source /etc/profile
 	rm -f /var/run/yum.pid
 	yum install epel-release elrepo-release yum-fastestmirror yum-utils -y
 	yum groupinstall "Development Tools" -y
@@ -612,6 +616,7 @@ install_zsh(){
 	git clone https://github.com/zsh-users/zsh-history-substring-search.git
 
 	cat >> /root/.zshrc<<-EOF
+	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 	alias vizsh="vim ~/.zshrc"
 	alias sourcezsh="source ~/.zshrc"
 	EOF
@@ -890,45 +895,6 @@ install_l2tp(){
 	echo "l2tp -d (删除用户)"
 	echo "l2tp -l (列出用户列表)"
 	echo "l2tp -m (修改指定用户的密码)"
-	echo "#######################################################################"
-	any_key_to_continue
-}
-
-install_vlmcsd(){
-
-	clear
-	echo "#######################################################################"
-	echo ""
-	echo "开始安装Vlmcsd..."
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	firewall-cmd --zone=public --add-port=1688/tcp --permanent
-	firewall-cmd --zone=public --add-port=1688/udp --permanent
-	firewall-cmd --reload
-
-	if [ -s /etc/init.d/vlmcsd ]; then
-		/etc/init.d/vlmcsd stop
-		/sbin/chkconfig --del vlmcsd
-		rm -f /etc/init.d/vlmcsd
-	fi
-
-	if [ -s /usr/local/bin/vlmcsdmulti-x64-musl-static ]; then
-		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
-	fi
-
-	wget -O /etc/init.d/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
-	chmod 0755 /etc/init.d/vlmcsd
-	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
-	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
-	/sbin/chkconfig --add vlmcsd
-	ln -s /etc/init.d/vlmcsd /usr/local/bin/vlmcsd
-	systemctl start vlmcsd
-	systemctl -a | grep vlmcsd
-	echo "#######################################################################"
-	echo ""
-	echo "Vlmcsd安装完毕."
-	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
 }
@@ -1370,6 +1336,55 @@ install_supervisor(){
 	echo "#######################################################################"
 	echo ""
 	echo "Supervisor安装完毕."
+	echo ""
+	echo "#######################################################################"
+	any_key_to_continue
+}
+
+install_vlmcsd(){
+
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装Vlmcsd..."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	firewall-cmd --zone=public --add-port=1688/tcp --permanent
+	firewall-cmd --zone=public --add-port=1688/udp --permanent
+	firewall-cmd --reload
+
+	if [ -s /etc/init.d/vlmcsd ]; then
+		/etc/init.d/vlmcsd stop
+		/sbin/chkconfig --del vlmcsd
+		rm -f /etc/init.d/vlmcsd
+	fi
+
+	if [ -s /usr/local/bin/vlmcsdmulti-x64-musl-static ]; then
+		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
+	fi
+
+	wget -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
+	chmod 0755 /usr/local/bin/vlmcsd
+	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
+	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
+	vlmcsd start
+	vlmcsd status
+	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
+		install_supervisor
+	fi
+
+	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
+	[program:vlmcsd]
+	command = /usr/local/bin/vlmcsd
+	startsecs = 5
+	autostart = true
+	startretries = 3
+	user = root
+	EOF
+	echo "#######################################################################"
+	echo ""
+	echo "Vlmcsd安装完毕."
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
@@ -2990,9 +3005,9 @@ install_all(){
 	install_zsh
 	install_shadowsocks
 	install_l2tp
-	install_vlmcsd
 	install_v2ray
 	install_supervisor
+	install_vlmcsd
 	install_kcptun
 	install_dnscrypt
 	clearsystem
@@ -3154,9 +3169,9 @@ mainmenu(){
 	echo "(7) 安装zsh"
 	echo "(8) 安装shadowsocks"
 	echo "(9) 安装l2tp"
-	echo "(10) 安装vlmcsd"
-	echo "(11) 安装v2ray"
-	echo "(12) 安装supervisor"
+	echo "(10) 安装v2ray"
+	echo "(11) 安装supervisor"
+	echo "(12) 安装vlmcsd"
 	echo "(13) 安装kcptun"
 	echo "(14) 安装dnscrypt"
 	echo ""
@@ -3202,15 +3217,15 @@ mainmenu(){
 		mainmenu
 		;;
 		10)
-		install_vlmcsd
-		mainmenu
-		;;
-		11)
 		install_v2ray
 		mainmenu
 		;;
-		12)
+		11)
 		install_supervisor
+		mainmenu
+		;;
+		12)
+		install_vlmcsd
 		mainmenu
 		;;
 		13)
