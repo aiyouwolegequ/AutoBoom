@@ -1,4 +1,4 @@
-wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/gogogo.sh      
+wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/gogogo.sh      
 chmod +x gogogo.sh    
 ./gogogo.sh      
 
