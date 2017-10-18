@@ -238,6 +238,34 @@ centosversion(){
 	fi
 }
 
+pre_install(){
+
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "预安装相关软件！"
+	echo ""
+	echo "#######################################################################"
+	rm -f /var/run/yum.pid
+	yum install epel-release elrepo-release yum-fastestmirror yum-utils -y
+	yum groupinstall "Development Tools" -y
+	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+	cd /etc/yum.repos.d/
+	wget https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
+	cd
+	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel wget gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel -y
+	ldconfig
+	easy_install pip
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "预安装完成！"
+	echo ""
+	echo "#######################################################################"
+	any_key_to_continue
+}
 updatesystem(){
 
 	clear
@@ -247,11 +275,6 @@ updatesystem(){
 	echo ""
 	echo "#######################################################################"
 	cd
-	yum install epel-release elrepo-release yum-fastestmirror yum-utils -y
-	yum groupinstall "Development Tools" -y
-	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 	yum check-update
 	yum info updates
 	yum upgrade -y
@@ -282,7 +305,7 @@ updatekernel(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "正在升级内核,请在脚本完成后重启系统"
+	echo "正在升级内核,请在全部脚本完成后重启系统"
 	echo ""
 	echo "#######################################################################"
 	yum --enablerepo=elrepo-kernel install kernel-ml -y
@@ -357,8 +380,7 @@ add_newuser(){
 		cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
 		sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
 		firewall-cmd --zone=public --add-port=10010/tcp --permanent
-		firewall-cmd --reload
-		yum install policycoreutils-python -y 
+		firewall-cmd --reload 
 		semanage port -a -t ssh_port_t -p tcp 10010
 		semanage port -l |grep ssh
 		cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
@@ -437,7 +459,7 @@ install_ckrootkit_rkhunter(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install rkhunter gcc gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make -y
+	yum install rkhunter -y
 	wget --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
 	if
@@ -492,7 +514,7 @@ install_fail2ban(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install fail2ban fail2ban-firewalld fail2ban-systemd selinux-policy-devel -y
+	yum install fail2ban fail2ban-firewalld fail2ban-systemd -y
 	cp -pf /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
 
 	cat > /etc/fail2ban/jail.local<<-EOF
@@ -520,7 +542,7 @@ install_fail2ban(){
 	fail2ban-client status sshd
 	echo "#######################################################################"
 	echo ""
-	echo "fail2ban安装完毕，使用fail2ban-client status sshd可以查看屏蔽列表."
+	echo -e "fail2ban安装完毕，使用\033[41;30mfail2ban-client status sshd\033[0m可以查看屏蔽列表."
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
@@ -629,15 +651,9 @@ install_shadowsocks(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install gcc gettext swig autoconf libtool python-setuptools automake make pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel -y
-	ldconfig
-	easy_install pip
+	yum install shadowsocks-libev -y
 	pip install greenlet
 	pip install gevent
-	cd /etc/yum.repos.d/
-	wget https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
-	yum update -y
-	yum install shadowsocks-libev -y
 	firewall-cmd --zone=public --add-port=999/tcp --permanent
 	firewall-cmd --zone=public --add-port=999/udp --permanent
 	firewall-cmd --reload
@@ -694,10 +710,10 @@ install_shadowsocks(){
 	echo "#######################################################################"
 	echo ""
 	echo "Shadowsocks的相关配置:"
-	echo "服务器IP	:	${IP}"
-	echo "端口		:	999"
-	echo "密码		:	${sspasswd}"
-	echo "加密方式	:	chacha20-ietf-poly1305"
+	echo -e "服务器IP	:	\033[41;30m${IP}\033[0m"
+	echo -e "端口		:	\033[41;30m999\033[0m"
+	echo -e "密码		:	\033[41;30m${sspasswd}\033[0m"
+	echo -e "加密方式	:	\033[41;30mchacha20-ietf-poly1305\033[0m"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -734,12 +750,12 @@ install_l2tp(){
 
 	echo ""
 	echo "请保存好L2TP VPN的用户名密码密钥！"
-	echo -e "服务器IP:\033[41;30m${IP}\033[0m"
-	echo "VPN网关IP:${iprange}.1"
-	echo "VPN客户端IP:${iprange}.2-${iprange}.254"
-	echo -e "用户名:\033[41;30m${username}\033[0m"
-	echo -e "密码:\033[41;30m${password}\033[0m"
-	echo -e "密钥:\033[41;30m${mypsk}\033[0m"
+	echo -e "服务器IP:	\033[41;30m${IP}\033[0m"
+	echo "VPN网关IP:	${iprange}.1"
+	echo "VPN客户端IP:	${iprange}.2-${iprange}.254"
+	echo -e "用户名:		\033[41;30m${username}\033[0m"
+	echo -e "密码:		\033[41;30m${password}\033[0m"
+	echo -e "密钥:		\033[41;30m${mypsk}\033[0m"
 	echo "#######################################################################"
 	echo ""
 	any_key_to_continue
@@ -853,8 +869,8 @@ install_l2tp(){
 	systemctl -a | grep xl2tpd
 	cd
 	wget https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
-	chmod +x l2tp.sh
-	./l2tp.sh
+	chmod +x l2tp_bin.sh
+	./l2tp_bin.sh
 	sleep 3
 	ipsec verify
 	rm -rf l2tp.sh
@@ -863,10 +879,10 @@ install_l2tp(){
 	echo ""
 	echo "#######################################################################"
 	echo "L2TP VPN的相关配置:"
-	echo "Server IP	:	${IP}"
-	echo "预共享密钥 	:	${mypsk}"
-	echo "Username 	:	${username}"
-	echo "Password 	:	${password}"
+	echo -e "Server IP	:	\033[41;30m${IP}\033[0m"
+	echo -e "预共享密钥 	:	\033[41;30m${mypsk}\033[0m"
+	echo -e "Username 	:	\033[41;30m${username}\033[0m"
+	echo -e "Password 	:	\033[41;30m${password}\033[0m"
 	echo "#######################################################################"
 	echo "请用以下命令修改L2TP VPN配置:"
 	echo "l2tp -a (新增用户)"
@@ -900,11 +916,9 @@ install_vlmcsd(){
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
-	wget -c http://mirrors.tintsoft.com/software/vlmcsd/vlmcsd.server
-	mv vlmcsd.server /etc/init.d/vlmcsd
+	wget -O /etc/init.d/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
 	chmod 0755 /etc/init.d/vlmcsd
-	wget -c http://mirrors.tintsoft.com/software/vlmcsd/vlmcsdmulti-x64-musl-static
-	mv vlmcsdmulti-x64-musl-static /usr/local/bin/vlmcsdmulti-x64-musl-static
+	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
 	/sbin/chkconfig --add vlmcsd
 	ln -s /etc/init.d/vlmcsd /usr/local/bin/vlmcsd
@@ -1110,9 +1124,9 @@ install_v2ray(){
 	echo "V2Ray安装完毕."
 	echo ""
 	echo "V2Ray的相关配置:"
-	echo "服务器IP			:	${IP}"
-	echo "UUID				:	${UUID}"
-	echo "V2Ray端口			:	8888"
+	echo "服务器IP		:	${IP}"
+	echo "UUID			:	${UUID}"
+	echo "V2Ray端口		:	8888"
 	echo "V2Ray SS端口		:	8889"
 	echo "V2Ray SS加密方式	:	aes-256-cfb"
 	echo "V2Ray SS密码		:	${v2raysspw}"
@@ -1129,37 +1143,17 @@ install_supervisor(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
+	
+	SUPERVISOR_SYSTEMD_FILE_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/supervisord.systemd"
 
-	SUPERVISOR_SYSTEMD_FILE_URL="${BASE_URL}/startup/supervisord.systemd"
-	BASE_URL='https://github.com/kuoruan/shell-scripts/raw/master/kcptun'
+	download_file(){
 
-	verify_file(){
-
-		if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
-			if [ "${#verify}" = "32" ]; then
-				verify_cmd="md5sum"
-			elif [ "${#verify}" = "40" ]; then
-				verify_cmd="sha1sum"
-			elif [ "${#verify}" = "64" ]; then
-				verify_cmd="sha256sum"
-			elif [ "${#verify}" = "128" ]; then
-				verify_cmd="sha512sum"
-			fi
-
-			if [ -n "$verify_cmd" ] && ! command_exists "$verify_cmd"; then
-				verify_cmd=
-			fi
-		fi
-
-		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
-			(
-				set -x
-				echo "${verify}  ${file}" | $verify_cmd -c
-			)
-			return $?
-		fi
-
-		return 1
+		local url="$1"
+		local file="$2"
+		local verify="$3"
+		local retry=0
+		local verify_cmd=
+		download_file_to_path
 	}
 
 	download_file_to_path(){
@@ -1190,22 +1184,41 @@ install_supervisor(){
 			mainmenu
 		fi
 
-		( set -x; wget -O "$file" --no-check-certificate "$url" )
+			( set -x; wget -O "$file" --no-check-certificate "$url" )
+
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
 			download_file_to_path
 		fi
 	}
 
-	download_file(){
+	verify_file(){
 
-		local url="$1"
-		local file="$2"
-		local verify="$3"
-		local retry=0
-		local verify_cmd=
+		if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
+			if [ "${#verify}" = "32" ]; then
+				verify_cmd="md5sum"
+			elif [ "${#verify}" = "40" ]; then
+				verify_cmd="sha1sum"
+			elif [ "${#verify}" = "64" ]; then
+				verify_cmd="sha256sum"
+			elif [ "${#verify}" = "128" ]; then
+				verify_cmd="sha512sum"
+			fi
 
-		download_file_to_path
+			if [ -n "$verify_cmd" ] && ! command_exists "$verify_cmd"; then
+				verify_cmd=
+			fi
+		fi
+
+		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
+			(
+				set -x
+				echo "${verify}  ${file}" | $verify_cmd -c
+			)
+			return $?
+		fi
+
+		return 1
 	}
 
 	config_install_supervisor(){
@@ -1363,21 +1376,20 @@ install_supervisor(){
 
 install_kcptun(){
 
-	SHELL_VERSION=20
-	CONFIG_VERSION=6
-	INIT_VERSION=3
+	SHELL_VERSION=0.1
+	CONFIG_VERSION=0.1
+	INIT_VERSION=0.1
 	KCPTUN_INSTALL_DIR='/usr/local/kcptun'
 	KCPTUN_LOG_DIR='/var/log/kcptun'
 	KCPTUN_RELEASES_URL='https://api.github.com/repos/xtaci/kcptun/releases'
 	KCPTUN_LATEST_RELEASE_URL="${KCPTUN_RELEASES_URL}/latest"
 	KCPTUN_TAGS_URL='https://github.com/xtaci/kcptun/tags'
-	BASE_URL='https://github.com/kuoruan/shell-scripts/raw/master/kcptun'
-	SHELL_VERSION_INFO_URL="${BASE_URL}/version.json"
-	JQ_LINUX64_URL="${BASE_URL}/bin/jq-linux64"
+	SHELL_VERSION_INFO_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/version.json"
+	JQ_LINUX64_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/jq-linux64"
 	JQ_LINUX64_HASH='d8e36831c3c94bb58be34dd544f44a6c6cb88568'
 	JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"	
 	D_LISTEN_PORT=800
-	D_TARGET_ADDR="${IP}"
+	D_TARGET_ADDR=${IP}
 	D_TARGET_PORT=999
 	D_KEY=`randpasswd`
 	D_CRYPT='salsa20'
@@ -1476,7 +1488,7 @@ install_kcptun(){
 		for k in "$@"; do
 			v="$(eval echo "\$$k")"
 			if [ -n "$v" ]; then
-				printf "${k}: \033[41;37m ${v} \033[0m\n"
+				printf "${k}:\033[41;30m ${v} \033[0m\n"
 			fi
 		done
 	}
@@ -1537,14 +1549,15 @@ install_kcptun(){
 		./kcptun_bin.sh
 		local server_ip=
 		server_ip="${IP}"
+		clear
 		echo ""
 		echo "请保存好Kcptun配置！"
 		echo ""
 		echo "#######################################################################"
 		echo ""
-		printf "服务器IP: \033[41;37m ${server_ip} \033[0m\n"
-		printf "端口: \033[41;37m ${listen_port} \033[0m\n"
-		printf "加速地址: \033[41;37m ${target_addr}:${target_port}\033[0m\n"
+		printf "服务器IP:\033[41;30m ${server_ip} \033[0m\n"
+		printf "端口:\033[41;30m ${listen_port} \033[0m\n"
+		printf "加速地址:\033[41;30m ${target_addr}:${target_port}\033[0m\n"
 		show_configs "key" "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
 			"parityshard" "dscp" "nocomp" "nodelay" "interval" "resend" \
 			"nc" "acknodelay" "sockbuf" "keepalive"
@@ -1554,9 +1567,9 @@ install_kcptun(){
 
 		read -d '' client_config <<-EOF
 		{
-		  "localaddr": ":${target_port}",
-		  "remoteaddr": "${server_ip}:${listen_port}",
-		  "key": "${key}"
+		  "localaddr"	: "${target_port}",
+		  "remoteaddr"	: "${server_ip}:${listen_port}",
+		  "key"		: "${key}"
 		}
 		EOF
 
@@ -1748,7 +1761,8 @@ install_kcptun(){
 			mainmenu
 		fi
 
-		( set -x; wget -O "$file" --no-check-certificate "$url" )
+			( set -x; wget -O "$file" --no-check-certificate "$url" )
+
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
 			download_file_to_path
@@ -2362,6 +2376,7 @@ install_kcptun(){
 		fi
 
 		echo "配置完成。"
+		echo "---------------------------"
 		any_key_to_continue
 	}
 
@@ -2859,18 +2874,21 @@ install_kcptun(){
 	set_kcptun_config
 	install_deps
 	kcptun_install
-	install_supervisor
+	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
+		install_supervisor
+	fi
 	gen_kcptun_config
 	set_firewall
 	start_supervisor
 	enable_supervisor
+	show_current_instance_info
 	echo "#######################################################################"
 	echo ""
 	echo "Kcptun安装完毕."
 	echo ""
 	echo "#######################################################################"
-	show_current_instance_info
 	any_key_to_continue
+	mainmenu
 }
 
 install_dnscrypt(){
@@ -2906,7 +2924,10 @@ install_dnscrypt(){
 	firewall-cmd --permanent --zone=public --add-port=5553/tcp
 	firewall-cmd --permanent --zone=public --add-port=5553/udp
 	firewall-cmd --reload
-	install_supervisor
+
+	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
+		install_supervisor
+	fi
 
 	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
 	[program:dnscrypt]
@@ -2925,8 +2946,8 @@ install_dnscrypt(){
 	echo "Dnscrypt安装完毕."
 	echo ""
 	echo "#######################################################################"
-	show_current_instance_info
 	any_key_to_continue
+	mainmenu
 }
 
 clearsystem(){
@@ -2990,7 +3011,9 @@ finally(){
 	echo "#######################################################################"
 	echo ""
 	char=`get_char`
-	echo "新建的用户可以使用ssh登陆系统:"
+	echo "请保存好以下配置："
+	echo ""
+	echo "可以使用ssh登陆系统的用户:"
 	echo "新用户名 	:	${newusername}" 
 	echo "新用户密码 	:	${newuserpasswd}" 
 	echo "root密码 	:	${newrootpasswd}"
@@ -3117,7 +3140,10 @@ submenu2(){
 
 mainmenu(){
 
+	clear
 	echo "#######################################################################"
+	echo ""
+	echo "进入正式安装......"
 	echo ""
 	echo "(0) 退出"
 	echo "(1) 默认全部安装"
@@ -3206,7 +3232,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO..."
+echo "GO GO GO v0.1 ..."
 echo ""
 echo "#######################################################################"
 echo ""
@@ -3214,4 +3240,5 @@ rootness
 disable_selinux
 set_sysctl
 get_os_info
+pre_install
 mainmenu
