@@ -18,18 +18,18 @@ chmod +x gogogo.sh
 (13) 安装kcptun      
 (14) 安装dnscrypt         
 
-l2tp -l 	列出用户       
-l2tp -a 	新增用户       
-l2tp -d 	删除用户       
-l2tp -m 	修改用户密码       
+l2tp -l 列出用户       
+l2tp -a 新增用户       
+l2tp -d 删除用户       
+l2tp -m 修改用户密码       
 
-kcptun uninstall      卸载      
-kcptun update         检查更新       
-kcptun add            添加一个实例, 多端口加速      
-kcptun reconfig <id>  重新配置实例      
-kcptun show <id>      显示实例详细配置            
-kcptun log <id>       显示实例日志         
-kcptun del <id>       删除一个实例      
+kcptun uninstall 卸载      
+kcptun update 检查更新       
+kcptun add 添加一个实例, 多端口加速      
+kcptun reconfig <id> 重新配置实例      
+kcptun show <id> 显示实例详细配置            
+kcptun log <id> 显示实例日志         
+kcptun del <id> 删除一个实例      
 若不指定 <id>, 则默认为 1        
   
 
