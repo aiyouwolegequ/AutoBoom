@@ -266,6 +266,7 @@ pre_install(){
 	echo "#######################################################################"
 	any_key_to_continue
 }
+
 updatesystem(){
 
 	clear
@@ -659,7 +660,7 @@ install_shadowsocks(){
 	firewall-cmd --reload
 	firewall-cmd --list-ports
 	systemctl restart firewalld.service
-	systemctl status firewalld.service| grep -B 3 "Active: active (running)"
+	systemctl -a | grep firewalld
 
 	cat > /etc/shadowsocks-libev/config.json<<-EOF
 	{
@@ -681,7 +682,7 @@ install_shadowsocks(){
 	MAXFD=32768
 	EOF
 
-	cat > ca<<-EOF
+	cat > /usr/lib/systemd/system/shadowsocks-libev.service<<-EOF
 	[Unit]
 	Description=Shadowsocks-libev Default Server Service
 	Documentation=man:shadowsocks-libev(8)
@@ -693,7 +694,7 @@ install_shadowsocks(){
 	User=root
 	Group=root
 	LimitNOFILE=32768
-	ExecStart=/usr/bin/ss-server -a $USER -c $CONFFILE $DAEMON_ARGS
+	ExecStart=/usr/bin/ss-server -a \$USER -c \$CONFFILE \$DAEMON_ARGS
 
 	[Install]
 	WantedBy=multi-user.target
@@ -868,7 +869,7 @@ install_l2tp(){
 	systemctl -a | grep ipsec
 	systemctl -a | grep xl2tpd
 	cd
-	wget https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/l2tp_bin.sh
+	wget https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
 	chmod +x l2tp_bin.sh
 	./l2tp_bin.sh
 	sleep 3
@@ -916,9 +917,9 @@ install_vlmcsd(){
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
-	wget -O /etc/init.d/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/vlmcsd.server
+	wget -O /etc/init.d/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
 	chmod 0755 /etc/init.d/vlmcsd
-	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/vlmcsdmulti-x64-musl-static
+	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
 	/sbin/chkconfig --add vlmcsd
 	ln -s /etc/init.d/vlmcsd /usr/local/bin/vlmcsd
@@ -1144,7 +1145,7 @@ install_supervisor(){
 	echo "#######################################################################"
 	echo ""
 	
-	SUPERVISOR_SYSTEMD_FILE_URL="https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/supervisord.systemd"
+	SUPERVISOR_SYSTEMD_FILE_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/supervisord.systemd"
 
 	download_file(){
 
@@ -1384,8 +1385,8 @@ install_kcptun(){
 	KCPTUN_RELEASES_URL='https://api.github.com/repos/xtaci/kcptun/releases'
 	KCPTUN_LATEST_RELEASE_URL="${KCPTUN_RELEASES_URL}/latest"
 	KCPTUN_TAGS_URL='https://github.com/xtaci/kcptun/tags'
-	SHELL_VERSION_INFO_URL="https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/version.json"
-	JQ_LINUX64_URL="https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/jq-linux64"
+	SHELL_VERSION_INFO_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/version.json"
+	JQ_LINUX64_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/jq-linux64"
 	JQ_LINUX64_HASH='d8e36831c3c94bb58be34dd544f44a6c6cb88568'
 	JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"	
 	D_LISTEN_PORT=800
@@ -1544,7 +1545,7 @@ install_kcptun(){
 
 	show_current_instance_info(){
 
-		wget https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/kcptun_bin.sh
+		wget https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/kcptun_bin.sh
 		chmod +x kcptun_bin.sh
 		./kcptun_bin.sh
 		local server_ip=
