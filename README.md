@@ -41,17 +41,3 @@ supervisorctl {start|stop|restart|status} kcptun<id>
 
 Dnscrypt 相关命令:    
 supervisorctl {start|stop|restart|status} dnscrypt       
-
-
-
-
-
-
-
-
-
-
-
-
-
-
