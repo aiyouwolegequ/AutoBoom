@@ -56,6 +56,7 @@ add_user(){
 }
 
 del_user(){
+
     while :
     do
         read -p "Please input Username you want to delete it:" user
@@ -76,6 +77,7 @@ del_user(){
 }
 
 mod_user(){
+
     while :
     do
         read -p "Please input Username you want to change password:" user
