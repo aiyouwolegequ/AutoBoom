@@ -2888,7 +2888,6 @@ install_kcptun(){
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
-	mainmenu
 }
 
 install_dnscrypt(){
@@ -2947,7 +2946,6 @@ install_dnscrypt(){
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
-	mainmenu
 }
 
 clearsystem(){
