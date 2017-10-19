@@ -1287,6 +1287,10 @@ install_supervisor(){
 	if [ -s /etc/supervisor/supervisord.conf ]&& command_exists supervisord;then
 		config_install_supervisor
 		download_startup_file
+		systemctl start supervisord.service
+		supervisorctl update
+		supervisorctl reread
+		supervisorctl status
 	else
 		if ! command_exists easy_install; then
 			cat >&2 <<-EOF
@@ -1331,6 +1335,10 @@ install_supervisor(){
 
 		config_install_supervisor
 		download_startup_file
+		systemctl start supervisord.service
+		supervisorctl update
+		supervisorctl reread
+		supervisorctl status
 	fi
 
 	echo "#######################################################################"
@@ -1374,7 +1382,7 @@ install_vlmcsd(){
 		install_supervisor
 	fi
 
-	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
+	cat > /etc/supervisor/conf.d/vlmcsd.conf<<-EOF
 	[program:vlmcsd]
 	command = /usr/local/bin/vlmcsd
 	startsecs = 5
@@ -2876,6 +2884,9 @@ install_kcptun(){
 			(
 				set -x
 				systemctl enable "supervisord.service"
+				supervisorctl update
+				supervisorctl reread
+				supervisorctl status
 			)
 		fi
 	}
@@ -2932,7 +2943,8 @@ install_dnscrypt(){
 	mkdir ~/.dns
 	cd ~/.dns
 	
-	dnscrypt-wrapper --gen-provider-keypair
+	dnscrypt-wrapper --gen-provider-keypair >> dns.log
+	pub=$(cat dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
 	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=${dnscrypt}.key
 	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=${dnscrypt}.key --provider-cert-file=${dnscrypt}.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
 
@@ -2944,18 +2956,23 @@ install_dnscrypt(){
 		install_supervisor
 	fi
 
+	clear
 	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
 	[program:dnscrypt]
-	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5553 --provider-name=${dnscrypt}.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/${dnscrypt}.key --provider-cert-file=/root/.dns/${dnscrypt}.cert
+	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5553 --provider-name=1.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/${dnscrypt}.key --provider-cert-file=/root/.dns/${dnscrypt}.cert
 	startsecs = 5
 	autostart = true
 	startretries = 3
 	user = root
 	EOF
 
+	systemctl restart supervisord.service
 	supervisorctl update
 	supervisorctl reread
 	supervisorctl status
+	echo "#######################################################################"
+	echo "如需使用dnscrypt可在电脑上使用以下命令:"
+	echo -e "dnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\n"
 	echo "#######################################################################"
 	echo ""
 	echo "Dnscrypt安装完毕."
@@ -3060,7 +3077,6 @@ finally(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-
 	read -p "刚刚更新了系统内核和默认shell，是否重启系统 ? (y/n) [默认=n]:" yy
 	echo "#######################################################################"
 	case $yy in
@@ -3089,7 +3105,10 @@ submenu1(){
 	echo "(4) 清理系统"
 	echo ""
 	echo "#######################################################################"
-	read -p "请选择要执行的模块？[默认=1]:" xx1
+	read -p "请选择要执行的模块？[默认=1, 5s 后自动执行]:"  -t 5 xx1
+		if [ -z ${xx1} ] ; then
+			xx1=1
+		fi
 	case $xx1 in
 		0)
 		mainmenu
@@ -3128,7 +3147,10 @@ submenu2(){
 	echo "(3) 新增ssh免密码验证用户"
 	echo ""
 	echo "#######################################################################"
-	read -p "请选择要执行的模块？[默认=1]:" xx1
+	read -p "请选择要执行的模块？[默认=1，5s 后自动执行]:"  -t 5 xx2
+		if [ -z ${xx2} ] ; then
+			xx2=1
+		fi
 	case $xx1 in
 		0)
 		mainmenu
@@ -3176,7 +3198,10 @@ mainmenu(){
 	echo "(14) 安装dnscrypt"
 	echo ""
 	echo "#######################################################################"
-	read -p "请选择要执行的模块？[默认=1]:" xx
+	read -p "请选择要执行的模块？[默认=1，5s 后自动执行]:" -t 5 xx
+		if [ -z ${xx} ] ; then
+			xx=1
+		fi
 	case $xx in
 		0)
 		exit
