@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
+IP=`wget -qO- -t1 -T2 ipv4.icanhazip.com`
 
 rootness(){
 
@@ -61,7 +61,6 @@ get_os_info(){
 	local lbit=$( getconf LONG_BIT )
 	local host=$( hostname )
 	local kern=$( uname -r )
-
 	echo ""
 	echo "################ 系统信息 ################"
 	echo ""
@@ -81,33 +80,6 @@ get_os_info(){
 	echo "########################################"
 	echo ""
 	any_key_to_continue
-}
-
-check_sys(){
-
-	local checkType=$1
-	local value=$2
-	local release=''
-	local systemPackage=''
-
-	if [[ -f /etc/redhat-release ]]; then
-		release="centos"
-		systemPackage="yum"
-	fi
-
-	if [[ ${checkType} == "sysRelease" ]]; then
-		if [ "$value" == "$release" ];then
-			return 0
-		else
-			return 1
-		fi
-	elif [[ ${checkType} == "packageManager" ]]; then
-		if [ "$value" == "$systemPackage" ];then
-			return 0
-		else
-			return 1
-		fi
-	fi
 }
 
 command_exists(){
@@ -171,7 +143,7 @@ set_sysctl(){
 
 any_key_to_continue(){
 
-	echo "请按任意键继续或 Ctrl + C 退出"
+	echo -e "请手动按任意键继续执行脚本或按\e[0;31m Ctrl + C\e[0m 退出"
 	local saved=
 	saved="$(stty -g)"
 	stty -echo
@@ -180,6 +152,17 @@ any_key_to_continue(){
 	stty -raw
 	stty echo
 	stty $saved
+}
+
+auto_continue(){
+
+	seconds_left=5 
+	while [ $seconds_left -gt 0 ];
+	do
+		echo -e -n "脚本将在\e[0;31m${seconds_left}\e[0m秒后继续执行或按\e[0;31m Ctrl + C\e[0m 手动退出 ...\r"
+		sleep 1
+		seconds_left=$(($seconds_left - 1))
+	done	
 }
 
 randusername(){
@@ -201,40 +184,6 @@ randpasswd(){
 	str=""
 	cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12
 	echo ${str}
-}
-
-is_64bit(){
-
-	if [ `getconf WORD_BIT` = '32' ] && [ `getconf LONG_BIT` = '64' ] ; then
-		return 0
-	else
-		return 1
-	fi
-}
-
-versionget(){
-
-	if [[ -s /etc/redhat-release ]];then
-		grep -oE"[0-9.]+" /etc/redhat-release
-	else
-		grep -oE"[0-9.]+" /etc/issue
-	fi
-}
-
-centosversion(){
-
-	if check_sys sysRelease centos;then
-		local code=${1}
-		local version="`versionget`"
-		local main_ver=${version%%.*}
-		if [ "${main_ver}" == "${code}" ];then
-			return 0
-		else
-			return 1
-		fi
-	else
-		return 1
-	fi
 }
 
 pre_install(){
@@ -267,7 +216,7 @@ pre_install(){
 	echo "预安装完成！"
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 updatesystem(){
@@ -301,7 +250,7 @@ updatesystem(){
 	echo "升级完毕！"
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 updatekernel(){
@@ -327,7 +276,7 @@ updatekernel(){
 	echo "升级完毕！"
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 changerootpasswd(){
@@ -375,82 +324,83 @@ add_newuser(){
 	read -p "是否需要设置ssh ? (y/n) [默认=n]:" yn
 	case "$yn" in
 		y|Y)
-		clear
-		echo "#######################################################################"
-		echo ""
-		echo "更换ssh端口为10010，禁用root登陆ssh，禁用密码认证，设置免密钥登陆"
-		echo ""
-		echo "#######################################################################"
-		cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
-		sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
-		firewall-cmd --zone=public --add-port=10010/tcp --permanent
-		firewall-cmd --reload 
-		semanage port -a -t ssh_port_t -p tcp 10010
-		semanage port -l |grep ssh
-		cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
-		echo "Port 10010" >>/etc/ssh/sshd_config
-		echo "PermitRootLogin no" >> /etc/ssh/sshd_config
-		echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
-		sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
-		su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
-		su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
-		su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
-		su - ${newusername} -c "chmod 600 /home/${newusername}/.ssh/authorized_keys"
-
-		while :
-		do
+			clear
 			echo "#######################################################################"
 			echo ""
-			read -p "请输入管理该服务器的电脑的公钥（可以使用cat .ssh/id_rsa.pub查看）:" pub
-				echo ""
-				echo "#######################################################################"
-				if [ -z "${pub}" ]; then
-					echo "公钥不能为空"
-				else
-			 		su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
-			 		break
-			 	fi
-		done
-
-		systemctl restart sshd.service
-		echo "请使用该命令测试ssh是否正常: ssh -p 10010 ${newusername}@${IP}"
-		echo "#######################################################################"
-		read -p "请确认ssh是否正常? (y/n) [默认=y]:" yy
+			echo "更换ssh端口为10010，禁用root登陆ssh，禁用密码认证，设置免密钥登陆"
+			echo ""
 			echo "#######################################################################"
-			case "$yy" in
-				y|Y)
-				any_key_to_continue
-				;;
-				n|N)
-				clear
+			cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
+			sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
+			firewall-cmd --zone=public --add-port=10010/tcp --permanent
+			firewall-cmd --reload 
+			semanage port -a -t ssh_port_t -p tcp 10010
+			semanage port -l |grep ssh
+			cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+			echo "Port 10010" >>/etc/ssh/sshd_config
+			echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+			echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+			sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+			su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
+			su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
+			su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
+			su - ${newusername} -c "chmod 600 /home/${newusername}/.ssh/authorized_keys"
+
+			while :
+			do
 				echo "#######################################################################"
 				echo ""
-				echo "恢复ssh端口为22 ,允许root登陆，允许使用密码验证"
-				echo ""
+				read -p "请输入管理该服务器的电脑的公钥（可以使用cat .ssh/id_rsa.pub查看）:" pub
+					echo ""
+					echo "#######################################################################"
+					if [ -z "${pub}" ]; then
+						echo "公钥不能为空"
+					else
+				 		su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
+				 		break
+				 	fi
+			done
+
+			systemctl restart sshd.service
+			echo "请使用该命令测试ssh是否正常: ssh -p 10010 ${newusername}@${IP}"
+			echo "#######################################################################"
+
+			read -p "请确认ssh是否正常? (y/n) [默认=y]:" yy
 				echo "#######################################################################"
-				rm -rf /etc/ssh/sshd_config
-				mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
-				sed -i 's/10010/22/g' /etc/firewalld/services/ssh.xml
-						firewall-cmd --zone=public --remove-port=10010/tcp --permanent
-						firewall-cmd --reload
-				semanage port -d -t ssh_port_t -p tcp 10010
-				systemctl restart sshd
-				echo "请使用该命令测试ssh是否正常: ssh -p 10010 root@${IP}"
-				echo "请在脚本完成后手动设置ssh密钥登陆"
-				echo "#######################################################################"
-				any_key_to_continue
-				;;
-				*)
-				any_key_to_continue
-				;;
-			esac
-		;;
+				case "$yy" in
+					y|Y)
+						any_key_to_continue
+						;;
+					n|N)
+						clear
+						echo "#######################################################################"
+						echo ""
+						echo "恢复ssh端口为22 ,允许root登陆，允许使用密码验证"
+						echo ""
+						echo "#######################################################################"
+						rm -rf /etc/ssh/sshd_config
+						mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
+						sed -i 's/10010/22/g' /etc/firewalld/services/ssh.xml
+								firewall-cmd --zone=public --remove-port=10010/tcp --permanent
+								firewall-cmd --reload
+						semanage port -d -t ssh_port_t -p tcp 10010
+						systemctl restart sshd
+						echo "请使用该命令测试ssh是否正常: ssh -p 10010 root@${IP}"
+						echo "请在脚本完成后手动设置ssh密钥登陆"
+						echo "#######################################################################"
+						any_key_to_continue
+						;;
+					*)
+						any_key_to_continue
+						;;
+				esac
+			;;
 		n|N)
-		install_ckrootkit_rkhunter
-		;;
+			install_ckrootkit_rkhunter
+			;;
 		*)
-		install_ckrootkit_rkhunter
-		;;
+			install_ckrootkit_rkhunter
+			;;
 	esac
 }
 
@@ -506,7 +456,7 @@ install_ckrootkit_rkhunter(){
 	echo "ckrootkit和rkhunter安装完毕."
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_fail2ban(){
@@ -549,7 +499,7 @@ install_fail2ban(){
 	echo -e "fail2ban安装完毕，使用\033[41;30mfail2ban-client status sshd\033[0m可以查看屏蔽列表."
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_lynis(){
@@ -576,7 +526,7 @@ install_lynis(){
 	echo "lynis安装完成,日志保存在lynis.log."
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_zsh(){
@@ -643,7 +593,7 @@ install_zsh(){
 	echo "Zsh安装完毕，脚本完成后使用env zsh手动切换shell为zsh."
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_shadowsocks(){
@@ -1132,12 +1082,14 @@ install_supervisor(){
 
 		if [ $retry -ge 3 ]; then
 			rm -f "$file"
+
 			cat >&2 <<-EOF
 			文件下载或校验失败! 请重试。
 			URL: ${url}
 			EOF
 
 			if [ -n "$verify_cmd" ]; then
+
 				cat >&2 <<-EOF
 				如果下载多次失败，你可以手动下载文件:
 				1. 下载文件 ${url}
@@ -1147,6 +1099,7 @@ install_supervisor(){
 
 				注: 文件目录 . 表示当前目录，.. 表示当前目录的上级目录
 				EOF
+
 			fi
 			any_key_to_continue
 			mainmenu
@@ -1223,10 +1176,12 @@ install_supervisor(){
 
 		if [ ! -s "$cfg_file" ]; then
 			if ! command_exists echo_supervisord_conf; then
-				cat >&2 <<-'EOF'
+
+				cat >&2 <<-EOF
 				未找到 echo_supervisord_conf, 无法自动创建 Supervisor 配置文件!
 				可能是当前安装的 supervisor 版本过低。
 				EOF
+
 				any_key_to_continue
 				mainmenu
 			fi
@@ -1260,7 +1215,6 @@ install_supervisor(){
 		if command_exists systemctl; then
 			supervisor_startup_file='/lib/systemd/system/supervisord.service'
 			supervisor_startup_file_url="$SUPERVISOR_SYSTEMD_FILE_URL"
-
 			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
 			(
 				set -x
@@ -1294,16 +1248,19 @@ install_supervisor(){
 		supervisorctl status
 	else
 		if ! command_exists easy_install; then
+
 			cat >&2 <<-EOF
 			未找到已安装的 easy_install 命令，
 			请先手动安装 python-setuptools
 			然后重新运行安装脚本。
 			EOF
+
 			any_key_to_continue
 			mainmenu
 		fi
 
 		if ! ( easy_install --help >/dev/null 2>&1 ); then
+
 			cat >&2 <<-EOF
 			检测到你的 easy_install 已损坏，
 			通常是由于你自己升级过 python 版本，
@@ -1313,6 +1270,7 @@ install_supervisor(){
 
 			 "/usr/local/python2.7" 应该为你新版本 python 的路径
 			EOF
+
 			any_key_to_continue
 			mainmenu
 		fi
@@ -1323,6 +1281,7 @@ install_supervisor(){
 		)
 
 		if [ "$?" != "0" ]; then
+
 			cat >&2 <<-EOF
 			错误: 安装 Supervisor 失败，
 			请尝试使用
@@ -1347,7 +1306,7 @@ install_supervisor(){
 	echo "Supervisor安装完毕."
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_vlmcsd(){
@@ -1377,31 +1336,34 @@ install_vlmcsd(){
 	chmod 0755 /usr/local/bin/vlmcsd
 	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
-	vlmcsd start
-	vlmcsd status
-	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
-		install_supervisor
-	fi
 
-	cat > /etc/supervisor/conf.d/vlmcsd.conf<<-EOF
-	[program:vlmcsd]
-	command = /usr/local/bin/vlmcsd
-	startsecs = 5
-	autostart = true
-	startretries = 3
-	user = root
+	cat > /usr/lib/systemd/system/vlmcsd.service<<-EOF
+	[Unit]
+	Description=Vlmcsd Server Service
+	After=network.target
+
+	[Service]
+	Type=forking
+	ExecStart=/usr/local/bin/vlmcsd start
+	ExecStop=/usr/local/bin/vlmcsd stop
+	User=root
+	Group=root
+	Restart=always
+
+	[Install]
+	WantedBy=multi-user.target
 	EOF
 
-	systemctl restart supervisord.service
-	supervisorctl update
-	supervisorctl reread
-	supervisorctl status
+	systemctl daemon-reload
+	systemctl enable vlmcsd.service
+	systemctl start vlmcsd.service
+	systemctl -a |grep vlmcsd
 	echo "#######################################################################"
 	echo ""
 	echo "Vlmcsd安装完毕."
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_kcptun(){
@@ -1451,18 +1413,19 @@ install_kcptun(){
 		[ -z "$snmpperiod" ] && snmpperiod="$D_SNMPPERIOD"
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置 SNMP 记录间隔时间 snmpperiod
 			EOF
-			read -p "(默认: ${snmpperiod}): " input
+
+			read -p "(默认: ${snmpperiod}): " input		
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -lt 0 ]; then
 					echo "输入有误, 请输入大于等于0的数字!"
 					continue
 				fi
-
 				snmpperiod=$input
 			fi
+
 			break
 		done
 
@@ -1477,6 +1440,7 @@ install_kcptun(){
 	unset_snmp(){
 		snmplog=
 		snmpperiod=
+
 		cat >&1 <<-EOF
 		---------------------------
 		不记录 SNMP 日志
@@ -1497,6 +1461,7 @@ install_kcptun(){
 
 		local version=
 		version="$(get_installed_version)"
+
 		if [ -n "$version" ]; then
 			cat >&1 <<-EOF
 
@@ -1505,6 +1470,7 @@ install_kcptun(){
 		fi
 
 		if [ -n "$kcptun_release_html_url" ]; then
+
 			cat >&1 <<-EOF
 			请自行前往:
 			  ${kcptun_release_html_url}
@@ -1515,8 +1481,10 @@ install_kcptun(){
 
 	show_configs(){
 		local k; local v
+
 		for k in "$@"; do
 			v="$(eval echo "\$$k")"
+
 			if [ -n "$v" ]; then
 				printf "${k}:\033[41;30m ${v} \033[0m\n"
 			fi
@@ -1530,6 +1498,7 @@ install_kcptun(){
 
 	gen_client_configs(){
 		local k; local v
+
 		for k in "$@"; do
 			if [ "$k" = "sndwnd" ]; then
 				v="$rcvwnd"
@@ -1551,6 +1520,7 @@ install_kcptun(){
 
 	gen_client_configs(){
 		local k; local v
+
 		for k in "$@"; do
 			if [ "$k" = "sndwnd" ]; then
 				v="$rcvwnd"
@@ -1608,7 +1578,6 @@ install_kcptun(){
 			"nc" "acknodelay" "sockbuf" "keepalive"
 
 		cat >&1 <<-EOF
-
 		可使用的客户端配置文件为:
 		${client_config}
 		EOF
@@ -1621,10 +1590,8 @@ install_kcptun(){
 			"nc" "acknodelay" "sockbuf" "keepalive"
 
 		cat >&1 <<-EOF
-
 		手机端参数可以使用:
 		  ${mobile_config}
-
 		EOF
 	}
 
@@ -1633,15 +1600,16 @@ install_kcptun(){
 		echo "开始配置手动参数..."
 		local input=
 		local yn=
-
 		[ -z "$nodelay" ] && nodelay="$D_NODELAY"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			是否启用 nodelay 模式?
 			(0) 不启用
 			(1) 启用
 			EOF
+
 			read -p "(默认: ${nodelay}) [0/1]: " input
 			if [ -n "$input" ]; then
 				case "${input:0:1}" in
@@ -1657,10 +1625,12 @@ install_kcptun(){
 						;;
 				esac
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		nodelay = ${nodelay}
@@ -1670,9 +1640,10 @@ install_kcptun(){
 		[ -z "$interval" ] && interval="$D_INTERVAL"
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置协议内部工作的 interval
 			EOF
+
 			read -p "(单位: ms, 默认: ${interval}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -le 0 ]; then
@@ -1682,10 +1653,12 @@ install_kcptun(){
 
 				interval=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		interval = ${interval}
@@ -1695,12 +1668,13 @@ install_kcptun(){
 		[ -z "$resend" ] && resend="$D_RESEND"
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			是否启用快速重传模式(resend)?
 			(0) 不启用
 			(1) 启用
 			(2) 2次ACK跨越将会直接重传
 			EOF
+
 			read -p "(默认: ${resend}) 请选择 [0~2]: " input
 			if [ -n "$input" ]; then
 				case "${input:0:1}" in
@@ -1719,10 +1693,12 @@ install_kcptun(){
 						;;
 				esac
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		resend = ${resend}
@@ -1732,11 +1708,12 @@ install_kcptun(){
 		[ -z "$nc" ] && nc="$D_NC"
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			是否关闭流控(nc)?
 			(0) 关闭
 			(1) 开启
 			EOF
+
 			read -p "(默认: ${nc}) [0/1]: " input
 			if [ -n "$input" ]; then
 				case "${input:0:1}" in
@@ -1752,8 +1729,10 @@ install_kcptun(){
 						;;
 				esac
 			fi
+
 			break
 		done
+
 		cat >&1 <<-EOF
 		---------------------------
 		nc = ${nc}
@@ -1771,12 +1750,14 @@ install_kcptun(){
 
 		if [ $retry -ge 3 ]; then
 			rm -f "$file"
+
 			cat >&2 <<-EOF
 			文件下载或校验失败! 请重试。
 			URL: ${url}
 			EOF
 
 			if [ -n "$verify_cmd" ]; then
+
 				cat >&2 <<-EOF
 				如果下载多次失败，你可以手动下载文件:
 				1. 下载文件 ${url}
@@ -1787,6 +1768,7 @@ install_kcptun(){
 				注: 文件目录 . 表示当前目录，.. 表示当前目录的上级目录
 				EOF
 			fi
+
 			any_key_to_continue
 			mainmenu
 		fi
@@ -1884,6 +1866,7 @@ install_kcptun(){
 		if [ -z "$is_checkd_jq" ] && ! check_jq; then
 			local dir=
 			dir="$(dirname "$JQ_BIN")"
+
 			if [ ! -d "$dir" ]; then
 				(
 					set -x
@@ -1893,6 +1876,7 @@ install_kcptun(){
 
 			if [ -z "$architecture" ]; then
 				get_arch
+
 			fi
 
 			case "$architecture" in
@@ -1902,6 +1886,7 @@ install_kcptun(){
 			esac
 
 			if ! check_jq; then
+
 				cat >&2 <<-EOF
 				未找到适用于当前系统的 JSON 解析软件 jq
 				EOF
@@ -1909,8 +1894,8 @@ install_kcptun(){
 				mainmenu
 			fi
 
-
 			return 0
+
 		fi
 	}
 
@@ -1941,6 +1926,7 @@ install_kcptun(){
 		acknodelay=
 		sockbuf=
 		keepalive=
+
 		cat >&1 <<-EOF
 		---------------------------
 		不配置隐藏参数
@@ -1952,14 +1938,15 @@ install_kcptun(){
 
 		local input=
 		local yn=
-
 		[ -z "$listen_port" ] && listen_port="$D_LISTEN_PORT"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请输入 Kcptun 服务端运行端口 [1~65535]
 			这个端口就是 Kcptun 客户端连接的端口
 			EOF
+
 			read -p "(默认: ${listen_port}): " input
 			if [ -n "$input" ]; then
 				if is_port "$input"; then
@@ -1975,10 +1962,12 @@ install_kcptun(){
 				echo "端口已被占用, 请重新输入!"
 				continue
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		端口 = ${listen_port}
@@ -1986,16 +1975,19 @@ install_kcptun(){
 		EOF
 
 		[ -z "$target_addr" ] && target_addr="$D_TARGET_ADDR"
-		cat >&1 <<-'EOF'
+
+		cat >&1 <<-EOF
 		请输入需要加速的地址
 		可以输入主机名称、IPv4 地址或者 IPv6 地址
 		EOF
+
 		read -p "(默认: ${target_addr}): " input
 		if [ -n "$input" ]; then
 			target_addr="$input"
 		fi
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		加速地址 = ${target_addr}
@@ -2005,9 +1997,10 @@ install_kcptun(){
 		[ -z "$target_port" ] && target_port="$D_TARGET_PORT"
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请输入需要加速的端口 [1~65535]
 			EOF
+
 			read -p "(默认: ${target_port}): " input
 			if [ -n "$input" ]; then
 				if is_port "$input"; then
@@ -2041,6 +2034,7 @@ install_kcptun(){
 
 		input=
 		yn=
+
 		cat >&1 <<-EOF
 		---------------------------
 		加速端口 = ${target_port}
@@ -2048,14 +2042,17 @@ install_kcptun(){
 		EOF
 
 		[ -z "$key" ] && key="$D_KEY"
-		cat >&1 <<-'EOF'
+
+		cat >&1 <<-EOF
 		请设置 Kcptun 密码(key)
 		该参数必须两端一致
 		EOF
+
 		read -p "(默认密码: ${key}): " input
 		[ -n "$input" ] && key="$input"
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		密码 = ${key}
@@ -2065,13 +2062,15 @@ install_kcptun(){
 		[ -z "$crypt" ] && crypt="$D_CRYPT"
 		local crypt_list="aes aes-128 aes-192 salsa20 blowfish twofish cast5 3des tea xtea xor none"
 		local i=0
-		cat >&1 <<-'EOF'
+
+		cat >&1 <<-EOF
 		请选择加密方式(crypt)
 		强加密对 CPU 要求较高，
 		如果是在路由器上配置客户端，
 		请尽量选择弱加密或者不加密。
 		该参数必须两端一致
 		EOF
+
 		while :
 		do
 
@@ -2090,11 +2089,13 @@ install_kcptun(){
 					continue
 				fi
 			fi
+
 			break
 		done
 
 		input=
 		i=0
+
 		cat >&1 <<-EOF
 		-----------------------------
 		加密方式 = ${crypt}
@@ -2104,12 +2105,14 @@ install_kcptun(){
 		[ -z "$mode" ] && mode="$D_MODE"
 		local mode_list="normal fast fast2 fast3 manual"
 		i=0
-		cat >&1 <<-'EOF'
+
+		cat >&1 <<-EOF
 		请选择加速模式(mode)
 		加速模式和发送窗口大小共同决定了流量的损耗大小
 		如果加速模式选择“手动(manual)”，
 		将进入手动档隐藏参数的设置。
 		EOF
+
 		while :
 		do
 
@@ -2128,11 +2131,13 @@ install_kcptun(){
 					continue
 				fi
 			fi
+
 			break
 		done
 
 		input=
 		i=0
+
 		cat >&1 <<-EOF
 		---------------------------
 		加速模式 = ${mode}
@@ -2149,11 +2154,13 @@ install_kcptun(){
 		fi
 
 		[ -z "$mtu" ] && mtu="$D_MTU"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置 UDP 数据包的 MTU (最大传输单元)值
 			EOF
+
 			read -p "(默认: ${mtu}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -le 0 ]; then
@@ -2163,10 +2170,12 @@ install_kcptun(){
 
 				mtu=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		MTU = ${mtu}
@@ -2174,12 +2183,14 @@ install_kcptun(){
 		EOF
 
 		[ -z "$sndwnd" ] && sndwnd="$D_SNDWND"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置发送窗口大小(sndwnd)
 			发送窗口过大会浪费过多流量
 			EOF
+
 			read -p "(数据包数量, 默认: ${sndwnd}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -le 0 ]; then
@@ -2189,10 +2200,12 @@ install_kcptun(){
 
 				sndwnd=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		sndwnd = ${sndwnd}
@@ -2200,11 +2213,13 @@ install_kcptun(){
 		EOF
 
 		[ -z "$rcvwnd" ] && rcvwnd="$D_RCVWND"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置接收窗口大小(rcvwnd)
 			EOF
+
 			read -p "(数据包数量, 默认: ${rcvwnd}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -le 0 ]; then
@@ -2214,10 +2229,12 @@ install_kcptun(){
 
 				rcvwnd=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		rcvwnd = ${rcvwnd}
@@ -2225,12 +2242,14 @@ install_kcptun(){
 		EOF
 
 		[ -z "$datashard" ] && datashard="$D_DATASHARD"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置前向纠错 datashard
 			该参数必须两端一致
 			EOF
+
 			read -p "(默认: ${datashard}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -lt 0 ]; then
@@ -2240,10 +2259,12 @@ install_kcptun(){
 
 				datashard=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		datashard = ${datashard}
@@ -2251,12 +2272,14 @@ install_kcptun(){
 		EOF
 
 		[ -z "$parityshard" ] && parityshard="$D_PARITYSHARD"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置前向纠错 parityshard
 			该参数必须两端一致
 			EOF
+
 			read -p "(默认: ${parityshard}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -lt 0 ]; then
@@ -2266,10 +2289,12 @@ install_kcptun(){
 
 				parityshard=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		parityshard = ${parityshard}
@@ -2277,11 +2302,13 @@ install_kcptun(){
 		EOF
 
 		[ -z "$dscp" ] && dscp="$D_DSCP"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			请设置差分服务代码点(DSCP)
 			EOF
+
 			read -p "(默认: ${dscp}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -lt 0 ]; then
@@ -2291,10 +2318,12 @@ install_kcptun(){
 
 				dscp=$input
 			fi
+
 			break
 		done
 
 		input=
+
 		cat >&1 <<-EOF
 		---------------------------
 		DSCP = ${dscp}
@@ -2302,11 +2331,13 @@ install_kcptun(){
 		EOF
 
 		[ -z "$nocomp" ] && nocomp="$D_NOCOMP"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			是否关闭数据压缩?
 			EOF
+
 			read -p "(默认: ${nocomp}) [y/n]: " yn
 			if [ -n "$yn" ]; then
 				case "${yn:0:1}" in
@@ -2322,10 +2353,12 @@ install_kcptun(){
 						;;
 				esac
 			fi
+
 			break
 		done
 
 		yn=
+
 		cat >&1 <<-EOF
 		---------------------------
 		nocomp = ${nocomp}
@@ -2335,6 +2368,7 @@ install_kcptun(){
 		cat >&1 <<-EOF
 		是否记录 SNMP 日志?
 		EOF
+
 		read -p "(默认: 否) [y/n]: " yn
 		if [ -n "$yn" ]; then
 			case "${yn:0:1}" in
@@ -2351,12 +2385,14 @@ install_kcptun(){
 		fi
 
 		[ -z "$pprof" ] && pprof="$D_PPROF"
+
 		while :
 		do
-			cat >&1 <<-'EOF'
+			cat >&1 <<-EOF
 			是否开启 pprof 性能监控?
 			地址: http://IP:6060/debug/pprof/
 			EOF
+
 			read -p "(默认: ${pprof}) [y/n]: " yn
 			if [ -n "$yn" ]; then
 				case "${yn:0:1}" in
@@ -2372,10 +2408,12 @@ install_kcptun(){
 						;;
 				esac
 			fi
+
 			break
 		done
 
 		yn=
+
 		cat >&1 <<-EOF
 		---------------------------
 		pprof = ${pprof}
@@ -2383,10 +2421,11 @@ install_kcptun(){
 		EOF
 
 
-		cat >&1 <<-'EOF'
+		cat >&1 <<-EOF
 		基础参数设置完成，是否设置额外的隐藏参数?
 		通常情况下保持默认即可，不用额外设置
 		EOF
+
 		read -p "(默认: 否) [y/n]: " yn
 		if [ -n "$yn" ]; then
 			case "${yn:0:1}" in
@@ -2434,8 +2473,8 @@ install_kcptun(){
 	get_kcptun_version_info(){
 
 		local request_version=$1
-
 		local version_content=
+
 		if [ -n "$request_version" ]; then
 			local json_content=
 			json_content="$(get_content "$KCPTUN_RELEASES_URL")"
@@ -2463,18 +2502,16 @@ install_kcptun(){
 		kcptun_release_prerelease="$(get_json_string "$version_content" '.prerelease')"
 		kcptun_release_publish_time="$(get_json_string "$version_content" '.published_at')"
 		kcptun_release_html_url="$(get_json_string "$version_content" '.html_url')"
-
 		local body=
 		body="$(get_json_string "$version_content" '.body' | grep -vE '(^```)|(^>)|(^[[:space:]]*$)')"
-
 		kcptun_release_body="$(echo "$body" | grep -vE "[0-9a-zA-Z]{32,}")"
-
 		local file_verify=
 		file_verify="$(echo "$body" | grep "$spruce_type")"
 
 		if [ -n "$file_verify" ]; then
 			local i=1
 			local split=
+
 			while :
 			do
 				split="$(echo "$file_verify" | cut -d ' ' -f$i)"
@@ -2499,11 +2536,13 @@ install_kcptun(){
 			get_kcptun_version_info $1
 
 			if [ "$?" != "0" ]; then
-				cat >&2 <<-'EOF'
+
+				cat >&2 <<-EOF
 				获取 Kcptun 版本信息或下载地址失败!
 				可能是 GitHub 改版，或者从网络获取到的内容不正确。
 				请联系脚本作者。
 				EOF
+
 				any_key_to_continue
 				mainmenu
 			fi
@@ -2537,11 +2576,13 @@ install_kcptun(){
 		kcptun_server_file="$(get_kcptun_server_file)"
 
 		if [ ! -f "$kcptun_server_file" ]; then
-			cat >&2 <<-'EOF'
+
+			cat >&2 <<-EOF
 			未在解压文件中找到 Kcptun 服务端执行文件!
 			通常这不会发生，可能的原因是 Kcptun 作者打包文件的时候更改了文件名。
 			你可以尝试重新安装，或者联系脚本作者。
 			EOF
+
 			any_key_to_continue
 			mainmenu
 		fi
@@ -2549,10 +2590,12 @@ install_kcptun(){
 		chmod a+x "$kcptun_server_file"
 
 		if [ -z "$(get_installed_version)" ]; then
-			cat >&2 <<-'EOF'
+
+			cat >&2 <<-EOF
 			无法找到适合当前服务器的 kcptun 可执行文件
 			你可以尝试从源码编译。
 			EOF
+
 			any_key_to_continue
 			mainmenu
 		fi
@@ -2563,12 +2606,14 @@ install_kcptun(){
 	get_network_content(){
 
 		if [ $retry -ge 3 ]; then
+
 			cat >&2 <<-EOF
 			获取网络信息失败!
 			URL: ${url}
 			安装脚本需要能访问到 github.com，请检查服务器网络。
 			注意: 一些国内服务器可能无法正常访问 github.com。
 			EOF
+
 			any_key_to_continue
 			mainmenu
 		fi
@@ -2636,6 +2681,7 @@ install_kcptun(){
 			if [ ! -x "$server_file" ]; then
 				chmod a+x "$server_file"
 			fi
+
 			echo "$(${server_file} -v 2>/dev/null | awk '{printf $3}')"
 		fi
 	}
@@ -2674,10 +2720,12 @@ install_kcptun(){
 
 		if [ ! -s "$cfg_file" ]; then
 			if ! command_exists echo_supervisord_conf; then
-				cat >&2 <<-'EOF'
+
+				cat >&2 <<-EOF
 				未找到 echo_supervisord_conf, 无法自动创建 Supervisor 配置文件!
 				可能是当前安装的 supervisor 版本过低。
 				EOF
+
 				any_key_to_continue
 				mainmenu
 			fi
@@ -2724,9 +2772,9 @@ install_kcptun(){
 	write_configs_to_file(){
 		install_jq
 		local k; local v
-
 		local json=
 		json="$(cat "$config_file")"
+
 		for k in "$@"; do
 			v="$(eval echo "\$$k")"
 
@@ -2750,7 +2798,6 @@ install_kcptun(){
 		config_file="$(get_current_file 'config')"
 		local supervisor_config_file=
 		supervisor_config_file="$(get_current_file 'supervisor')"
-
 		mk_file_dir "$config_file"
 		mk_file_dir "$supervisor_config_file"
 
@@ -2813,6 +2860,7 @@ install_kcptun(){
 			if ! ( firewall-cmd --state >/dev/null 2>&1 ); then
 				systemctl start firewalld >/dev/null 2>&1
 			fi
+
 			if [ "$?" = "0" ]; then
 				if [ -n "$current_listen_port" ]; then
 					firewall-cmd --zone=public --remove-port=${current_listen_port}/udp >/dev/null 2>&1
@@ -2823,6 +2871,7 @@ install_kcptun(){
 					firewall-cmd --reload
 				fi
 			else
+
 				cat >&1 <<-EOF
 				警告: 自动添加 firewalld 规则失败
 				如果有必要, 请手动添加端口 ${listen_port} 的防火墙规则:
@@ -2846,6 +2895,7 @@ install_kcptun(){
 					service iptables restart
 				fi
 			else
+
 				cat >&1 <<-EOF
 				警告: 自动添加 iptables 规则失败
 				如有必要, 请手动添加端口 ${listen_port} 的防火墙规则:
@@ -2860,6 +2910,7 @@ install_kcptun(){
 	start_supervisor(){
 
 		( set -x; sleep 3 )
+
 		if command_exists systemctl; then
 			if systemctl status supervisord.service >/dev/null 2>&1; then
 				systemctl restart supervisord.service
@@ -2875,10 +2926,12 @@ install_kcptun(){
 		fi
 
 		if [ "$?" != "0" ]; then
-			cat >&2 <<-'EOF'
+
+			cat >&2 <<-EOF
 			启动 Supervisor 失败, Kcptun 无法正常工作!
 			请反馈给脚本作者。
 			EOF
+
 			any_key_to_continue
 			mainmenu
 		fi
@@ -2954,12 +3007,10 @@ install_dnscrypt(){
 	rm -rf dnscrypt-*
 	mkdir ~/.dns
 	cd ~/.dns
-	
 	dnscrypt-wrapper --gen-provider-keypair >> dns.log
 	pub=$(cat dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
 	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=${dnscrypt}.key
 	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=${dnscrypt}.key --provider-cert-file=${dnscrypt}.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
-
 	firewall-cmd --permanent --zone=public --add-port=5553/tcp
 	firewall-cmd --permanent --zone=public --add-port=5553/udp
 	firewall-cmd --reload
@@ -3019,7 +3070,7 @@ clearsystem(){
 	echo "清理完毕！"
 	echo ""
 	echo "#######################################################################"
-	any_key_to_continue
+	auto_continue
 }
 
 install_all(){
@@ -3093,8 +3144,10 @@ finally(){
 	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
 	echo "#######################################################################"
 	echo ""
+
 	read -p "刚刚更新了系统内核和默认shell，是否重启系统 ? (y/n) [默认=n]:" yy
 	echo "#######################################################################"
+
 	case $yy in
 		y|Y)
 			init 6
@@ -3121,6 +3174,7 @@ submenu1(){
 	echo "(4) 清理系统"
 	echo ""
 	echo "#######################################################################"
+
 	read -p "请选择要执行的模块？[默认=1, 5s 后自动执行]:"  -t 5 xx1
 		if [ -z ${xx1} ] ; then
 			xx1=1
@@ -3164,6 +3218,7 @@ submenu2(){
 	echo "(3) 新增ssh免密码验证用户"
 	echo ""
 	echo "#######################################################################"
+
 	read -p "请选择要执行的模块？[默认5s后自动执行(1)]:"  -t 5 xx2
 		if [ -z ${xx2} ] ; then
 			xx2=1
@@ -3216,6 +3271,7 @@ mainmenu(){
 	echo "(14) 安装dnscrypt"
 	echo ""
 	echo "#######################################################################"
+
 	read -p "请选择要执行的模块？[默认5s后自动执行(1)]:" -t 5 xx
 		if [ -z ${xx} ] ; then
 			xx=1
@@ -3290,7 +3346,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.15 ..."
+echo "GO GO GO v0.1.17 ..."
 echo ""
 echo "#######################################################################"
 echo ""

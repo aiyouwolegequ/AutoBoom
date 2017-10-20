@@ -1,13 +1,13 @@
 #!/bin/bash
 
-PID=$(pgrep vlmcsdmulti)
+PID=`pgrep vlmcsdmulti`
 [ ${NETWORKING} ="yes" ] || exit 0
 RET_VAL=0
 [ -x /usr/local/bin/vlmcsdmulti-x64-musl-static ] || exit 0
 
 do_status() {
 
-  if [ -z $PID ] ; then
+  if [ -z ${PID} ] ; then
     echo "vlmcsd not running"
   else 
     echo "vlmcsd already running"
