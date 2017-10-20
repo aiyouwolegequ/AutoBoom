@@ -33,7 +33,9 @@ tunavailable(){
 
 disable_selinux(){
 
-	if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
+	selinux=`getenforce`
+
+	if [[ "$selinux" = "Enforcing" ]] ; then
 		sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 		setenforce 0
 		echo "SElinux已禁用..."
