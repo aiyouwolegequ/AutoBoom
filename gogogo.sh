@@ -218,6 +218,7 @@ pre_install(){
 	echo "预安装完成！"
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -252,6 +253,7 @@ updatesystem(){
 	echo "升级完毕！"
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -278,6 +280,7 @@ updatekernel(){
 	echo "升级完毕！"
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -297,6 +300,7 @@ changerootpasswd(){
 	echo "请妥善保存root密码！"
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	any_key_to_continue
 }
 
@@ -371,6 +375,7 @@ add_newuser(){
 				echo "#######################################################################"
 				case "$yy" in
 					y|Y)
+						echo ""
 						any_key_to_continue
 						;;
 					n|N)
@@ -390,9 +395,11 @@ add_newuser(){
 						echo "请使用该命令测试ssh是否正常: ssh -p 10010 root@${IP}"
 						echo "请在脚本完成后手动设置ssh密钥登陆"
 						echo "#######################################################################"
+						echo ""
 						any_key_to_continue
 						;;
 					*)
+						echo ""
 						any_key_to_continue
 						;;
 				esac
@@ -458,6 +465,7 @@ install_ckrootkit_rkhunter(){
 	echo "ckrootkit和rkhunter安装完毕."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -501,6 +509,7 @@ install_fail2ban(){
 	echo -e "fail2ban安装完毕，使用\033[41;30mfail2ban-client status sshd\033[0m可以查看屏蔽列表."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -528,6 +537,7 @@ install_lynis(){
 	echo "lynis安装完成,日志保存在lynis.log."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -582,7 +592,7 @@ install_zsh(){
  		 	chsh -s /bin/zsh root
  		 	echo "#######################################################################"
 			echo ""
- 		 	echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!千万不要按Ctrl + C退出脚本!"
+ 		 	echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!\n千万不要按Ctrl + C退出脚本!"
 			echo ""
 			echo "#######################################################################"
 	else
@@ -595,6 +605,7 @@ install_zsh(){
 	echo "Zsh安装完毕，脚本完成后使用env zsh手动切换shell为zsh."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -847,6 +858,7 @@ install_l2tp(){
 	echo "l2tp -l (列出用户列表)"
 	echo "l2tp -m (修改指定用户的密码)"
 	echo "#######################################################################"
+	echo ""
 	any_key_to_continue
 }
 
@@ -1051,6 +1063,7 @@ install_v2ray(){
 	echo -e "V2Ray SS加密方式	:	\033[41;30maes-256-cfb\033[0m"
 	echo -e "V2Ray SS密码		:	\033[41;30m${v2raysspw}\033[0m"
 	echo "#######################################################################"
+	echo ""
 	any_key_to_continue
 }
 
@@ -1308,6 +1321,7 @@ install_supervisor(){
 	echo "Supervisor安装完毕."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -1365,6 +1379,7 @@ install_vlmcsd(){
 	echo "Vlmcsd安装完毕."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
@@ -2977,6 +2992,7 @@ install_kcptun(){
 	echo "Kcptun安装完毕."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	any_key_to_continue
 }
 
@@ -3044,6 +3060,7 @@ install_dnscrypt(){
 	echo "Dnscrypt安装完毕."
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	any_key_to_continue
 }
 
@@ -3072,6 +3089,7 @@ clearsystem(){
 	echo "清理完毕！"
 	echo ""
 	echo "#######################################################################"
+	echo ""
 	auto_continue
 }
 
