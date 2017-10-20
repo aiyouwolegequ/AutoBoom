@@ -1,7 +1,6 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-UUID=$(cat /proc/sys/kernel/random/uuid)
 IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 
 rootness(){
@@ -901,6 +900,8 @@ install_l2tp(){
 
 install_v2ray(){
 
+	UUID=$(cat /proc/sys/kernel/random/uuid)
+
 	v2ray_install_component(){
 
 		local COMPONENT=$1
@@ -1091,12 +1092,12 @@ install_v2ray(){
 	echo "V2Ray安装完毕."
 	echo ""
 	echo "V2Ray的相关配置:"
-	echo "服务器IP		:	${IP}"
-	echo "UUID			:	${UUID}"
-	echo "V2Ray端口		:	8888"
-	echo "V2Ray SS端口		:	8889"
-	echo "V2Ray SS加密方式	:	aes-256-cfb"
-	echo "V2Ray SS密码		:	${v2raysspw}"
+	echo -e "服务器IP		:	\033[41;30m${IP}\033[0m"
+	echo -e "UUID			:	\033[41;30m${UUID}\033[0m"
+	echo -e "V2Ray端口		:	\033[41;30m8888\033[0m"
+	echo -e "V2Ray SS端口		:	\033[41;30m8889\033[0m"
+	echo -e "V2Ray SS加密方式	:	\033[41;30maes-256-cfb\033[0m"
+	echo -e "V2Ray SS密码		:	\033[41;30m${v2raysspw}\033[0m"
 	echo "#######################################################################"
 	any_key_to_continue
 }
@@ -1390,6 +1391,11 @@ install_vlmcsd(){
 	startretries = 3
 	user = root
 	EOF
+
+	systemctl restart supervisord.service
+	supervisorctl update
+	supervisorctl reread
+	supervisorctl status
 	echo "#######################################################################"
 	echo ""
 	echo "Vlmcsd安装完毕."
@@ -2901,9 +2907,11 @@ install_kcptun(){
 	set_kcptun_config
 	install_deps
 	kcptun_install
+
 	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
 		install_supervisor
 	fi
+
 	gen_kcptun_config
 	set_firewall
 	start_supervisor
@@ -2931,12 +2939,16 @@ install_dnscrypt(){
 	tar zxf dnscrypt-latest.tar.gz
 	cd dnscrypt-proxy-*
 	./autogen.sh
+	sleep 1
 	./configure
+	sleep 1
 	make -j4 && make install
 	git clone --recursive git://github.com/cofyc/dnscrypt-wrapper.git
 	cd dnscrypt-wrapper
 	make configure
+	sleep 1
 	./configure
+	sleep 1
 	make install
 	cd
 	rm -rf dnscrypt-*
@@ -2957,6 +2969,7 @@ install_dnscrypt(){
 	fi
 
 	clear
+
 	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
 	[program:dnscrypt]
 	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5553 --provider-name=1.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/${dnscrypt}.key --provider-cert-file=/root/.dns/${dnscrypt}.cert
@@ -2972,7 +2985,7 @@ install_dnscrypt(){
 	supervisorctl status
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
-	echo -e "dnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\n"
+	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
 	echo "#######################################################################"
 	echo ""
 	echo "Dnscrypt安装完毕."
@@ -2989,6 +3002,7 @@ clearsystem(){
 	echo "开始清理系统"
 	echo ""
 	echo "#######################################################################"
+	rm -rf kcptun_bin.sh l2tp_bin.sh
 	yum autoremove
 	yum makecache
 	yum-complete-transaction --cleanup-only
@@ -3045,52 +3059,54 @@ finally(){
 	echo "请保存好以下配置："
 	echo ""
 	echo "可以使用ssh登陆系统的用户:"
-	echo "新用户名 	:	${newusername}" 
-	echo "新用户密码 	:	${newuserpasswd}" 
-	echo "root密码 	:	${newrootpasswd}"
+	echo -e "新用户名 	:	\033[41;30m${newusername}\033[0m" 
+	echo -e "新用户密码 	:	\033[41;30m${newuserpasswd}\033[0m" 
+	echo -e "root密码 	:	\033[41;30m${newrootpasswd}\033[0m"
 	echo ""
 	echo "Shadowsocks的相关配置:"
-	echo "服务器IP	:	${IP}"
-	echo "端口		:	999"
-	echo "密码		:	${sspasswd}"
-	echo "加密方式	:	chacha20-ietf-poly1305"
+	echo -e "服务器IP	:	\033[41;30m${IP}\033[0m"
+	echo -e "端口		:	\033[41;30m999\033[0m"
+	echo -e "密码		:	\033[41;30m${sspasswd}\033[0m"
+	echo -e "加密方式	:	\033[41;30mchacha20-ietf-poly1305\033[0m"
 	echo ""
 	echo "L2TP VPN的相关配置:"
-	echo "Server IP	:	${IP}"
-	echo "预共享密钥 	:	${mypsk}"
-	echo "Username 	:	${username}"
-	echo "Password 	:	${password}"
+	echo -e "Server IP	:	\033[41;30m${IP}\033[0m"
+	echo -e "预共享密钥 	:	\033[41;30m${mypsk}\033[0m"
+	echo -e "Username 	:	\033[41;30m${username}\033[0m"
+	echo -e "Password 	:	\033[41;30m${password}\033[0m"
 	echo ""
 	echo "使用以下命令配置l2tp用户:"
-	echo "l2tp -a (新建用户)"
-	echo "l2tp -d (删除用户)"
-	echo "l2tp -l (列出用户)"
-	echo "l2tp -m (修改指定用户的密码)"
+	echo -e "\033[41;30ml2tp -a\033[0m (新建用户)"
+	echo -e "\033[41;30ml2tp -d\033[0m (删除用户)"
+	echo -e "\033[41;30ml2tp -l\033[0m (列出用户)"
+	echo -e "\033[41;30ml2tp -m\033[0m (修改指定用户的密码)"
 	echo ""
 	echo "V2Ray的相关配置:"
-	echo "服务器IP		:	${IP}"
-	echo "UUID			:	${UUID}"
-	echo "V2Ray端口		:	8888"
-	echo "V2Ray SS端口		:	8889"
-	echo "V2Ray SS加密方式	:	aes-256-cfb"
-	echo "V2Ray SS密码		:	${v2raysspw}"
+	echo -e "服务器IP		:	\033[41;30m${IP}\033[0m"
+	echo -e "UUID			:	\033[41;30m${UUID}\033[0m"
+	echo -e "V2Ray端口		:	\033[41;30m8888\033[0m"
+	echo -e "V2Ray SS端口		:	\033[41;30m8889\033[0m"
+	echo -e "V2Ray SS加密方式	:	\033[41;30maes-256-cfb\033[0m"
+	echo -e "V2Ray SS密码		:	\033[41;30m${v2raysspw}\033[0m"
 	echo ""
+	echo "如需使用dnscrypt可在电脑上使用以下命令:"
+	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
 	echo "#######################################################################"
 	echo ""
 	read -p "刚刚更新了系统内核和默认shell，是否重启系统 ? (y/n) [默认=n]:" yy
 	echo "#######################################################################"
 	case $yy in
 		y|Y)
-		init 6
-		;;
+			init 6
+			;;
 		n|N)
-		any_key_to_continue
-		mainmenu
-		;;
+			any_key_to_continue
+			mainmenu
+			;;
 		*)
-		any_key_to_continue
-		mainmenu
-		;;
+			any_key_to_continue
+			mainmenu
+			;;
 	esac
 }
 
@@ -3109,31 +3125,32 @@ submenu1(){
 		if [ -z ${xx1} ] ; then
 			xx1=1
 		fi
+
 	case $xx1 in
 		0)
-		mainmenu
-		;;
+			mainmenu
+			;;
 		1)
-		updatesystem
-		updatekernel
-		clearsystem
-		rebootcheck
-		;;
+			updatesystem
+			updatekernel
+			clearsystem
+			rebootcheck
+			;;
 		2)
-		updatesystem
-		submenu1
-		;;
+			updatesystem
+			submenu1
+			;;
 		3)
-		updatekernel
-		rebootcheck
-		;;
+			updatekernel
+			rebootcheck
+			;;
 		4)
-		clearsystem
-		submenu1
-		;;
+			clearsystem
+			submenu1
+			;;
 		*)
-		submenu1
-		;;
+			submenu1
+			;;
 	esac
 }
 
@@ -3147,30 +3164,31 @@ submenu2(){
 	echo "(3) 新增ssh免密码验证用户"
 	echo ""
 	echo "#######################################################################"
-	read -p "请选择要执行的模块？[默认=1，5s 后自动执行]:"  -t 5 xx2
+	read -p "请选择要执行的模块？[默认5s后自动执行(1)]:"  -t 5 xx2
 		if [ -z ${xx2} ] ; then
 			xx2=1
 		fi
+
 	case $xx1 in
 		0)
-		mainmenu
-		;;
+			mainmenu
+			;;
 		1)
-		changerootpasswd
-		add_newuser
-		submenu2
-		;;
+			changerootpasswd
+			add_newuser
+			submenu2
+			;;
 		2)
-		changerootpasswd
-		submenu2
-		;;
+			changerootpasswd
+			submenu2
+			;;
 		3)
-		add_newuser
-		submenu2
-		;;
+			add_newuser
+			submenu2
+			;;
 		*)
-		submenu2
-		;;
+			submenu2
+			;;
 	esac
 }
 
@@ -3198,80 +3216,81 @@ mainmenu(){
 	echo "(14) 安装dnscrypt"
 	echo ""
 	echo "#######################################################################"
-	read -p "请选择要执行的模块？[默认=1，5s 后自动执行]:" -t 5 xx
+	read -p "请选择要执行的模块？[默认5s后自动执行(1)]:" -t 5 xx
 		if [ -z ${xx} ] ; then
 			xx=1
 		fi
+
 	case $xx in
 		0)
 		exit
 		;;
 		1)
-		install_all
-		mainmenu
-		;;
+			install_all
+			mainmenu
+			;;
 		2)
-		submenu1
-		;;
+			submenu1
+			;;
 		3)
-		submenu2
-		;;
+			submenu2
+			;;
 		4)
-		install_ckrootkit_rkhunter
-		mainmenu
-		;;
+			install_ckrootkit_rkhunter
+			mainmenu
+			;;
 		5)
-		install_fail2ban
-		mainmenu
-		;;
+			install_fail2ban
+			mainmenu
+			;;
 		6)
-		install_lynis
-		mainmenu
-		;;
+			install_lynis
+			mainmenu
+			;;
 		7)
-		install_zsh
-		mainmenu
-		;;
+			install_zsh
+			mainmenu
+			;;
 		8)
-		install_shadowsocks
-		mainmenu
-		;;
+			install_shadowsocks
+			mainmenu
+			;;
 		9)
-		tunavailable
-		install_l2tp
-		mainmenu
-		;;
+			tunavailable
+			install_l2tp
+			mainmenu
+			;;
 		10)
-		install_v2ray
-		mainmenu
-		;;
+			install_v2ray
+			mainmenu
+			;;
 		11)
-		install_supervisor
-		mainmenu
-		;;
+			install_supervisor
+			mainmenu
+			;;
 		12)
-		install_vlmcsd
-		mainmenu
-		;;
+			install_vlmcsd
+			mainmenu
+			;;
 		13)
-		install_kcptun
-		mainmenu
-		;;
+			install_kcptun
+			mainmenu
+			;;
 		14)
-		install_dnscrypt
-		mainmenu
-		;;
+			install_dnscrypt
+			mainmenu
+			;;
 		*)
-		install_all
-		mainmenu
-		;;
+			install_all
+			mainmenu
+			;;
 	esac
 }
 
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1 ..."
+echo "GO GO GO v0.1.15 ..."
 echo ""
 echo "#######################################################################"
 echo ""
