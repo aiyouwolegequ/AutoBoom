@@ -336,7 +336,7 @@ add_newuser(){
 			echo "更换ssh端口为10010，禁用root登陆ssh，禁用密码认证，设置免密钥登陆"
 			echo ""
 			echo "#######################################################################"
-			cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
+			cp -r /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
 			sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
 			firewall-cmd --zone=public --add-port=10010/tcp --permanent
 			firewall-cmd --reload 
@@ -350,7 +350,7 @@ add_newuser(){
 			su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
 			su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
 			su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
-			su - ${newusername} -c "chmod 600 /home/${newusername}/.ssh/authorized_keys"
+			su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
 
 			while :
 			do
@@ -388,8 +388,8 @@ add_newuser(){
 						rm -rf /etc/ssh/sshd_config
 						mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
 						sed -i 's/10010/22/g' /etc/firewalld/services/ssh.xml
-								firewall-cmd --zone=public --remove-port=10010/tcp --permanent
-								firewall-cmd --reload
+						firewall-cmd --zone=public --remove-port=10010/tcp --permanent
+						firewall-cmd --reload
 						semanage port -d -t ssh_port_t -p tcp 10010
 						systemctl restart sshd
 						echo "请使用该命令测试ssh是否正常: ssh root@${IP}"
@@ -3055,7 +3055,7 @@ install_dnscrypt(){
 	supervisorctl status
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
-	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
+	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
 	echo "#######################################################################"
 	echo ""
 	echo "Dnscrypt安装完毕."
@@ -3299,7 +3299,7 @@ mainmenu(){
 	echo ""
 	echo "#######################################################################"
 
-	read -p "请选择要执行的模块？[默认10s后自动执行(1)]:" -t 10 xx
+	read -p "请选择要执行的模块？[默认15s后自动执行(1)]:" -t 15 xx
 		if [ -z ${xx} ] ; then
 			xx=1
 		fi
@@ -3373,7 +3373,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.19 ..."
+echo "GO GO GO v0.1.20 ..."
 echo ""
 echo "#######################################################################"
 echo ""
