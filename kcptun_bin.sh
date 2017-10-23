@@ -42,6 +42,13 @@ run_user='kcptun'
 
 clear
 
+randpasswd(){
+
+	str=""
+	cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12
+	echo ${str}
+}
+
 command_exists(){
 
 	command -v "$@" >/dev/null 2>&1
