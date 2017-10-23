@@ -392,7 +392,7 @@ add_newuser(){
 								firewall-cmd --reload
 						semanage port -d -t ssh_port_t -p tcp 10010
 						systemctl restart sshd
-						echo "请使用该命令测试ssh是否正常: ssh -p 10010 root@${IP}"
+						echo "请使用该命令测试ssh是否正常: ssh root@${IP}"
 						echo "请在脚本完成后手动设置ssh密钥登陆"
 						echo "#######################################################################"
 						echo ""
