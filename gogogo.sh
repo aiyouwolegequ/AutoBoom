@@ -286,11 +286,14 @@ updatekernel(){
 
 changerootpasswd(){
 
+	clear
+	echo "#######################################################################"
+	echo ""
 	read -p "是否需要更换root密码? (y/n) [默认=n]:" yx
 		case "$yx" in
 			y|Y)	
 				newrootpasswd=`randpasswd`
-				clear
+				echo ""
 				echo "#######################################################################"
 				echo ""
 				echo "正在更换root密码!"
@@ -317,12 +320,15 @@ changerootpasswd(){
 
 add_newuser(){
 
+	clear
+	echo "#######################################################################"
+	echo ""
 	read -p "是否需要新增用户? (y/n) [默认=n]:" yz
 		case "$yz" in
 			y|Y)
 				newusername=`randusername`
 				newuserpasswd=`randpasswd`
-				clear
+				echo ""
 				echo "#######################################################################"
 				echo ""
 				echo "新建一个非root权限的系统用户!"
@@ -335,8 +341,6 @@ add_newuser(){
 				echo "请保存好用户名和密码！"
 				echo -e "Username:\033[41;30m${newusername}\033[0m" 
 				echo -e "Password:\033[41;30m${newuserpasswd}\033[0m" 
-				echo ""
-				echo "#######################################################################"
 				echo ""
 				echo "#######################################################################"
 				echo ""
@@ -3394,7 +3398,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.21 ..."
+echo "GO GO GO v0.1.22 ..."
 echo ""
 echo "#######################################################################"
 echo ""
