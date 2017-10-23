@@ -286,48 +286,70 @@ updatekernel(){
 
 changerootpasswd(){
 
-	newrootpasswd=`randpasswd`
-	clear
-	echo "#######################################################################"
-	echo ""
-	echo "正在更换root密码!"
-	echo ""
-	echo "#######################################################################"
-	echo "${newrootpasswd}" | passwd --stdin root
-	echo "#######################################################################"
-	echo ""
-	echo -e "新root密码为	:\033[41;30m${newrootpasswd}\033[0m" 
-	echo "请妥善保存root密码！"
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	any_key_to_continue
+	read -p "是否需要更换root密码? (y/n) [默认=n]:" yx
+		case "$yx" in
+			y|Y)	
+				newrootpasswd=`randpasswd`
+				clear
+				echo "#######################################################################"
+				echo ""
+				echo "正在更换root密码!"
+				echo ""
+				echo "#######################################################################"
+				echo "${newrootpasswd}" | passwd --stdin root
+				echo "#######################################################################"
+				echo ""
+				echo -e "新root密码为	:\033[41;30m${newrootpasswd}\033[0m" 
+				echo "请妥善保存root密码！"
+				echo ""
+				echo "#######################################################################"
+				echo ""
+				any_key_to_continue
+				;;
+			n|N)
+				any_key_to_continue
+				;;
+			*)
+				any_key_to_continue
+				;;
+		esac
 }
 
 add_newuser(){
 
-	newusername=`randusername`
-	newuserpasswd=`randpasswd`
-	clear
-	echo "#######################################################################"
-	echo ""
-	echo "新建一个非root权限的系统用户!"
-	echo ""
-	echo "#######################################################################"
-	useradd -m ${newusername}
-	echo "${newuserpasswd}" | passwd --stdin ${newusername}
-	echo "#######################################################################"
-	echo ""
-	echo "请保存好用户名和密码！"
-	echo -e "Username:\033[41;30m${newusername}\033[0m" 
-	echo -e "Password:\033[41;30m${newuserpasswd}\033[0m" 
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	echo "#######################################################################"
-	echo ""
+	read -p "是否需要新增用户? (y/n) [默认=n]:" yz
+		case "$yz" in
+			y|Y)
+				newusername=`randusername`
+				newuserpasswd=`randpasswd`
+				clear
+				echo "#######################################################################"
+				echo ""
+				echo "新建一个非root权限的系统用户!"
+				echo ""
+				echo "#######################################################################"
+				useradd -m ${newusername}
+				echo "${newuserpasswd}" | passwd --stdin ${newusername}
+				echo "#######################################################################"
+				echo ""
+				echo "请保存好用户名和密码！"
+				echo -e "Username:\033[41;30m${newusername}\033[0m" 
+				echo -e "Password:\033[41;30m${newuserpasswd}\033[0m" 
+				echo ""
+				echo "#######################################################################"
+				echo ""
+				echo "#######################################################################"
+				echo ""
+				;;
+			n|N)
+				any_key_to_continue
+				;;
+			*)
+				any_key_to_continue
+				;;
+		esac		
 
-	read -p "是否需要设置ssh ? (y/n) [默认=n]:" yn
+	read -p "是否需要设置ssh? (y/n) [默认=n]:" yn
 	case "$yn" in
 		y|Y)
 			clear
@@ -405,10 +427,10 @@ add_newuser(){
 				esac
 			;;
 		n|N)
-			install_ckrootkit_rkhunter
+			any_key_to_continue
 			;;
 		*)
-			install_ckrootkit_rkhunter
+			any_key_to_continue
 			;;
 	esac
 }
