@@ -592,7 +592,8 @@ install_zsh(){
  		 	chsh -s /bin/zsh root
  		 	echo "#######################################################################"
 			echo ""
- 		 	echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!\n千万不要按Ctrl + C退出脚本!"
+ 		 	echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!"
+ 		 	echo "千万不要按Ctrl + C退出脚本!!!"
 			echo ""
 			echo "#######################################################################"
 	else
@@ -2986,7 +2987,7 @@ install_kcptun(){
 	set_firewall
 	start_supervisor
 	enable_supervisor
-	show_current_instance_info
+	show_current_instance_info >> kcptun.log
 	echo "#######################################################################"
 	echo ""
 	echo "Kcptun安装完毕."
@@ -3072,6 +3073,7 @@ clearsystem(){
 	echo "开始清理系统"
 	echo ""
 	echo "#######################################################################"
+	cd
 	rm -rf kcptun_bin.sh l2tp_bin.sh
 	yum autoremove
 	yum makecache
@@ -3195,7 +3197,7 @@ submenu1(){
 	echo ""
 	echo "#######################################################################"
 
-	read -p "请选择要执行的模块？[默认=1, 5s 后自动执行]:"  -t 5 xx1
+	read -p "请选择要执行的模块？[默认5s后自动执行(1)]:"  -t 5 xx1
 		if [ -z ${xx1} ] ; then
 			xx1=1
 		fi
@@ -3223,7 +3225,10 @@ submenu1(){
 			submenu1
 			;;
 		*)
-			submenu1
+			updatesystem
+			updatekernel
+			clearsystem
+			rebootcheck
 			;;
 	esac
 }
@@ -3262,6 +3267,8 @@ submenu2(){
 			submenu2
 			;;
 		*)
+			changerootpasswd
+			add_newuser
 			submenu2
 			;;
 	esac
@@ -3299,8 +3306,8 @@ mainmenu(){
 
 	case $xx in
 		0)
-		exit
-		;;
+			exit
+			;;
 		1)
 			install_all
 			mainmenu
@@ -3366,7 +3373,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.17 ..."
+echo "GO GO GO v0.1.18 ..."
 echo ""
 echo "#######################################################################"
 echo ""
