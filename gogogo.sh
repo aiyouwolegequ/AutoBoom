@@ -708,7 +708,7 @@ install_shadowsocks(){
 	echo -e "Server IP:\033[41;30m${IP}\033[0m"
 	echo -e "Port:\033[41;30m999\033[0m"
 	echo -e "Password:\033[41;30m${sspasswd}\033[0m"
-	echo -e "Encryption	:\033[41;30mchacha20-ietf-poly1305\033[0m"
+	echo -e "Encryption:\033[41;30mchacha20-ietf-poly1305\033[0m"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3032,31 +3032,50 @@ install_dnscrypt(){
 	echo "#######################################################################"
 	echo ""
 	dnscrypt=`randusername`
-	wget https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz -O dnscrypt-latest.tar.gz
-	tar zxf dnscrypt-latest.tar.gz
-	cd dnscrypt-proxy-*
-	./autogen.sh
-	sleep 1
+	wget -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+	tar zxvf libsodium.tar.gz
+	cd libsodium*
 	./configure
+	make && make install
+	echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
+	ldconfig
 	sleep 1
-	make -j4 && make install
+	cd
+	wget https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+	tar zxvf libevent-2.1.8-stable.tar.gz
+	cd libevent-2.1.8-stable
+	./configure && make
+	make install
+	sleep 1
+	cd
 	git clone --recursive git://github.com/cofyc/dnscrypt-wrapper.git
 	cd dnscrypt-wrapper
 	make configure
-	sleep 1
 	./configure
-	sleep 1
 	make install
+	ldconfig
+	sleep 1
 	cd
-	rm -rf dnscrypt-*
+	wget -O dnscrypt-proxy.tar.gz https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz
+	tar zxvf dnscrypt-proxy.tar.gz
+	cd dnscrypt-proxy*
+	./configure
+	make && make install
+	sleep 1
+	cd
 	mkdir ~/.dns
 	cd ~/.dns
 	dnscrypt-wrapper --gen-provider-keypair >> dns.log
 	pub=$(cat dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
-	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=${dnscrypt}.key
-	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=${dnscrypt}.key --provider-cert-file=${dnscrypt}.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
-	firewall-cmd --permanent --zone=public --add-port=5553/tcp
-	firewall-cmd --permanent --zone=public --add-port=5553/udp
+	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=1.key
+	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=1.key --provider-cert-file=1.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
+	firewall-cmd --permanent --zone=public --add-port=5453/tcp
+	firewall-cmd --permanent --zone=public --add-port=5354/tcp
+	firewall-cmd --permanent --zone=public --add-port=3535/tcp
+	firewall-cmd --permanent --zone=public --add-port=5453/udp
+	firewall-cmd --permanent --zone=public --add-port=5354/udp
+	firewall-cmd --permanent --zone=public --add-port=3535/udp
+	firewall-cmd --permanent --zone=public --add-port=53/udp
 	firewall-cmd --reload
 
 	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
@@ -3066,21 +3085,100 @@ install_dnscrypt(){
 	clear
 
 	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
-	[program:dnscrypt]
-	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5553 --provider-name=1.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/${dnscrypt}.key --provider-cert-file=/root/.dns/${dnscrypt}.cert
+	[program:dnscrypt-wrapper]
+	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5453 --provider-name=2.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/1.key --provider-cert-file=/root/.dns/1.cert
 	startsecs = 5
 	autostart = true
 	startretries = 3
-	user = root
+	user = nobody
+
+	[program:dnscrypt-proxy]
+	command = /usr/local/sbin/dnscrypt-proxy --local-address=127.0.0.1:5354 --resolver-address=178.216.201.222:2053 --provider-name=2.dnscrypt-cert.soltysiak.com --provider-key=25C4:E188:2915:4697:8F9C:2BBD:B6A7:AFA4:01ED:A051:0508:5D53:03E7:1928:C066:8F21
+	startsecs = 5
+	autostart = true
+	startretries = 3
+	user = nobody
 	EOF
 
 	systemctl restart supervisord.service
 	supervisorctl update
 	supervisorctl reread
 	supervisorctl status
+	wget http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
+	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
+	cp /etc/pdnsd.conf.sample /etc/pdnsd.conf
+
+	cat > /etc/pdnsd.conf<<-EOF
+	global {
+	perm_cache=10240;
+	cache_dir="/var/cache/pdnsd";
+	run_as="pdnsd";
+	server_ip = any;
+	server_port=3535;
+	status_ctl = on;
+	# paranoid=on;
+	# but may make pdnsd less efficient, unfortunately.
+	query_method=tcp_only;
+	min_ttl=1d;
+	max_ttl=1w;
+	timeout=10;
+	randomize_recs = on;
+	neg_domain_pol=on;
+	udpbufsize=1024;
+	}
+
+	server {
+	label= "googledns";
+	ip = 127.0.0.1;
+	port = 5354;
+	timeout=4;
+	uptest=none;
+	purge_cache=off;
+	edns_query=no;
+	exclude = .localdomain;
+	}
+
+	source {
+	owner=localhost;
+	file="/etc/hosts";
+	}
+
+	rr {
+	name=localhost;
+	reverse=on;
+	a=127.0.0.1;
+	owner=localhost;
+	soa=localhost,root.localhost,42,86400,900,86400,86400;
+	}
+	EOF
+
+	chmod 755 /etc/pdnsd.conf
+	systemctl start pdnsd
+	systemctl enable pdnsd
+	systemctl start dnsmasq.service
+	systemctl enable dnsmasq.service
+
+	cat > /etc/dnsmasq.conf<<-EOF
+	no-resolv
+	no-poll
+	server=127.0.0.1#3535
+	conf-dir=/etc/dnsmasq.d
+	log-queries
+	log-facility=/var/log/dnsmasq.log
+	EOF
+
+	cat > /etc/resolv.conf<<-EOF
+	nameserver 127.0.0.1
+	EOF
+
+	supervisorctl restart dnscrypt-proxy
+	systemctl restart pdnsd
+	systemctl restart dnsmasq
+
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
 	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
+	echo "或者直接设置${IP}为DNS地址"
 	echo "#######################################################################"
 	echo ""
 	echo "Dnscrypt安装完毕."
@@ -3398,7 +3496,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.22 ..."
+echo "GO GO GO v0.1.24 ..."
 echo ""
 echo "#######################################################################"
 echo ""
