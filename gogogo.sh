@@ -201,14 +201,14 @@ pre_install(){
 	EOF
 	source /etc/profile
 	rm -f /var/run/yum.pid
-	yum install epel-release elrepo-release yum-fastestmirror yum-utils -y
+	yum provides '*/applydeltarpm'
+	yum install epel-release elrepo-release yum-fastestmirror yum-utils deltarpm -y
 	yum groupinstall "Development Tools" -y
 	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	cd /etc/yum.repos.d/
-	wget https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
-	cd
+	rm -rf /etc/yum.repos.d/librehat-shadowsocks-epel-7.repo
+	wget -O /etc/yum.repos.d/librehat-shadowsocks-epel-7.repo https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
 	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel wget gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel -y
 	ldconfig
 	easy_install pip
@@ -3104,6 +3104,7 @@ install_dnscrypt(){
 	supervisorctl update
 	supervisorctl reread
 	supervisorctl status
+	yum install dnsmasq
 	wget http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
 	cp /etc/pdnsd.conf.sample /etc/pdnsd.conf
@@ -3174,7 +3175,7 @@ install_dnscrypt(){
 	supervisorctl restart dnscrypt-proxy
 	systemctl restart pdnsd
 	systemctl restart dnsmasq
-
+	rm -rf dnscrypt* libevent* libsodium*
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
 	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
@@ -3496,7 +3497,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.24 ..."
+echo "GO GO GO v0.1.22 ..."
 echo ""
 echo "#######################################################################"
 echo ""
