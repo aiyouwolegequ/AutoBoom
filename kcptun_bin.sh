@@ -18,7 +18,7 @@ JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"
 D_LISTEN_PORT=800
 D_TARGET_ADDR=${IP}
 D_TARGET_PORT=999
-D_KEY=${randpasswd}
+D_KEY=$(cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12)
 D_CRYPT='salsa20'
 D_MODE='fast3'
 D_MTU=1300
@@ -41,13 +41,6 @@ current_instance_id=
 run_user='kcptun'
 
 clear
-
-randpasswd(){
-
-	str=""
-	cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12
-	echo ${str}
-}
 
 command_exists(){
 

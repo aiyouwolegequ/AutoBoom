@@ -3199,6 +3199,7 @@ clearsystem(){
 	echo "#######################################################################"
 	cd
 	rm -rf kcptun_bin.sh l2tp_bin.sh l2tp.sh
+	mv gogogo.sh /usr/local/bin/gogogo
 	yum autoremove
 	yum makecache
 	yum-complete-transaction --cleanup-only
