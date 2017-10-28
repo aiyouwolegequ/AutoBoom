@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-IP=`wget -qO- -t1 -T2 ipv4.icanhazip.com`
+IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 
 rootness(){
 
@@ -873,10 +873,10 @@ install_l2tp(){
 	echo ""
 	echo "#######################################################################"
 	echo "L2TP VPN的相关配置:"
-	echo -e "Server IP	:	\033[41;30m${IP}\033[0m"
-	echo -e "PSK		:	\033[41;30m${mypsk}\033[0m"
-	echo -e "Username	:	\033[41;30m${username}\033[0m"
-	echo -e "Password	:	\033[41;30m${password}\033[0m"
+	echo -e "Server IP:\033[41;30m${IP}\033[0m"
+	echo -e "PSK:\033[41;30m${mypsk}\033[0m"
+	echo -e "Username:\033[41;30m${username}\033[0m"
+	echo -e "Password:\033[41;30m${password}\033[0m"
 	echo "#######################################################################"
 	echo "请用以下命令修改L2TP VPN配置:"
 	echo "l2tp -a (新增用户)"
@@ -3497,7 +3497,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.24 ..."
+echo "GO GO GO v0.1.25 ..."
 echo ""
 echo "#######################################################################"
 echo ""
