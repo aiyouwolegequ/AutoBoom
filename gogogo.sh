@@ -3195,7 +3195,7 @@ install_dnscrypt(){
 	rm -rf dnscrypt* libevent* libsodium*
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
-	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
+	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5453 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
 	echo "或者直接设置${IP}为DNS地址"
 	echo "#######################################################################"
 	echo ""
@@ -3305,7 +3305,7 @@ finally(){
 	echo -e "V2Ray SS Password:\033[41;30m${v2raysspw}\033[0m"
 	echo ""
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
-	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5553 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
+	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5453 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
 	echo "#######################################################################"
 	echo ""
 
