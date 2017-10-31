@@ -17,6 +17,7 @@ chmod +x gogogo.sh
 (12) 安装vlmcsd       
 (13) 安装kcptun      
 (14) 安装dnscrypt         
+(15) 安装pptp
 
 l2tp -l 列出用户       
 l2tp -a 新增用户       
