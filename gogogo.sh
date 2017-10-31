@@ -209,7 +209,7 @@ pre_install(){
 	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 	rm -rf /etc/yum.repos.d/librehat-shadowsocks-epel-7.repo
 	wget -O /etc/yum.repos.d/librehat-shadowsocks-epel-7.repo https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
-	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel wget gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel -y
+	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel wget gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
 	ldconfig
 	easy_install pip
 	clear
@@ -720,7 +720,7 @@ install_pptp(){
 	clear
 	pptpuser=`randusername`
 	pptppasswd=`randpasswd`
-	yum install ppp pptpd -y
+	yum install pptpd -y
 	echo "localip 10.10.0.1" >> /etc/pptpd.conf
 	echo "remoteip 10.10.0.100-199" >> /etc/pptpd.conf
 	echo "ms-dns 8.8.8.8" >> /etc/ppp/options.pptpd
@@ -793,7 +793,7 @@ install_l2tp(){
 	echo "#######################################################################"
 	echo ""
 	any_key_to_continue
-	yum -y install ppp libreswan xl2tpd
+	yum -y install libreswan xl2tpd
 	sysctl -p
 	systemctl start ipsec
 	systemctl start xl2tpd	
