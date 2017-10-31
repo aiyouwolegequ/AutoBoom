@@ -18,7 +18,7 @@ JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"
 D_LISTEN_PORT=800
 D_TARGET_ADDR=${IP}
 D_TARGET_PORT=999
-D_KEY=$(cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12)
+D_KEY=`randpasswd`
 D_CRYPT='salsa20'
 D_MODE='fast3'
 D_MTU=1300
@@ -1972,9 +1972,9 @@ show_current_instance_info(){
 	local server_ip=
 	server_ip="$(get_server_ip)"
 
-	printf "服务器IP: \033[41;37m ${server_ip} \033[0m\n"
-	printf "端口: \033[41;37m ${listen_port} \033[0m\n"
-	printf "加速地址: \033[41;37m ${target_addr}:${target_port}\033[0m\n"
+	printf "ip: \033[41;37m ${server_ip} \033[0m\n"
+	printf "port: \033[41;37m ${listen_port} \033[0m\n"
+	printf "address: \033[41;37m ${target_addr}:${target_port}\033[0m\n"
 
 	show_configs(){
 
