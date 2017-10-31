@@ -19,6 +19,8 @@ chmod +x gogogo.sh
 (14) 安装dnscrypt         
 (15) 安装pptp         
 
+mv gogogo.sh /usr/local/bin/gogogo        
+
 Supervisor 相关命令:      
 service supervisord {start|stop|restart|status}    
 supervisorctl status      
