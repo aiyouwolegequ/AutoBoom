@@ -1598,9 +1598,9 @@ install_kcptun(){
 		echo ""
 		echo "#######################################################################"
 		echo ""
-		printf "服务器IP:\033[41;30m ${server_ip} \033[0m\n"
-		printf "端口:\033[41;30m ${listen_port} \033[0m\n"
-		printf "加速地址:\033[41;30m ${target_addr}:${target_port}\033[0m\n"
+		printf "ip:\033[41;30m ${server_ip} \033[0m\n"
+		printf "port:\033[41;30m ${listen_port} \033[0m\n"
+		printf "address:\033[41;30m ${target_addr}:${target_port}\033[0m\n"
 		show_configs "key" "crypt" "mode" "mtu" "sndwnd" "rcvwnd" "datashard" \
 			"parityshard" "dscp" "nocomp" "nodelay" "interval" "resend" \
 			"nc" "acknodelay" "sockbuf" "keepalive"
@@ -3013,6 +3013,11 @@ install_kcptun(){
 	start_supervisor
 	enable_supervisor
 	show_current_instance_info >> kcptun.log
+	clear
+	echo "#######################################################################"
+	echo "请保存好Kcptun配置！"
+	echo ""
+	sed -n '6,18p' kcptun.log
 	echo "#######################################################################"
 	echo ""
 	echo "Kcptun安装完毕."
@@ -3280,10 +3285,10 @@ finally(){
 	echo -e "root密码:\033[41;30m${newrootpasswd}\033[0m"
 	echo ""
 	echo "Shadowsocks的相关配置:"
-	echo -e "服务器IP:\033[41;30m${IP}\033[0m"
-	echo -e "端口:\033[41;30m999\033[0m"
-	echo -e "密码:\033[41;30m${sspasswd}\033[0m"
-	echo -e "加密方式	:\033[41;30mchacha20-ietf-poly1305\033[0m"
+	echo -e "Server IP:\033[41;30m${IP}\033[0m"
+	echo -e "Port:\033[41;30m999\033[0m"
+	echo -e "Password:\033[41;30m${sspasswd}\033[0m"
+	echo -e "Encryption:\033[41;30mchacha20-ietf-poly1305\033[0m"
 	echo ""
 	echo "L2TP VPN的相关配置:"
 	echo -e "Server IP:\033[41;30m${IP}\033[0m"
@@ -3516,7 +3521,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.25 ..."
+echo "GO GO GO v0.1.27 ..."
 echo ""
 echo "#######################################################################"
 echo ""
