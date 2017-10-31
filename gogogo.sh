@@ -3114,7 +3114,7 @@ install_dnscrypt(){
 	--resolver-address=8.8.8.8:53 \
 	--provider-name=2.dnscrypt-cert.${dnscrypt}.org \
 	--crypt-secretkey-file=/root/.dns/1.key \
-	--provider-cert-file=/root/.dns/1.cert \
+	--provider-cert-file=/root/.dns/1.cert
 	Restart=on-failure
 	EOF
 
@@ -3123,6 +3123,7 @@ install_dnscrypt(){
 	yum install dnsmasq
 	wget http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
+	rm -rf pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	cp /etc/pdnsd.conf.sample /etc/pdnsd.conf
 
 	cat > /etc/pdnsd.conf<<-EOF
@@ -3514,7 +3515,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.26 ..."
+echo "GO GO GO v0.1.25 ..."
 echo ""
 echo "#######################################################################"
 echo ""
