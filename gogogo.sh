@@ -715,6 +715,45 @@ install_shadowsocks(){
 	any_key_to_continue
 }
 
+install_pptp(){
+
+	clear
+	pptpuser=`randusername`
+	pptppasswd=`randpasswd`
+	yum install ppp pptpd -y
+	echo "localip 10.10.0.1" >> /etc/pptpd.conf
+	echo "remoteip 10.10.0.100-199" >> /etc/pptpd.conf
+	echo "ms-dns 8.8.8.8" >> /etc/ppp/options.pptpd
+	echo "ms-dns 8.8.4.4" >> /etc/ppp/options.pptpd
+	echo "${pptpuser} pptpd ${pptppasswd} *" >> /etc/ppp/chap-secrets
+
+	cat >/etc/firewalld/services/pptp.xml<<-EOF
+	<?xml version="1.0" encoding="utf-8"?>
+	<service>
+	  <port protocol="tcp" port="1723"/>
+	</service>
+	EOF
+
+	firewall-cmd --reload
+	firewall-cmd --permanent --zone=public --add-service=pptp
+	firewall-cmd --permanent --zone=public --add-masquerade
+	firewall-cmd --reload
+	systemctl start pptpd.service
+	systemctl enable pptpd.service
+	echo "#######################################################################"
+	echo ""
+	echo "PPTP VPN安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo "PPTP VPN的相关配置:"
+	echo -e "Server IP:\033[41;30m${IP}\033[0m"
+	echo -e "Username:\033[41;30m${pptpuser}\033[0m"
+	echo -e "Password:\033[41;30m${pptppasswd}\033[0m"
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
+}
+
 install_l2tp(){
 
 	clear
@@ -845,14 +884,7 @@ install_l2tp(){
 	connect-delay 5000
 	EOF
 
-	rm -f /etc/ppp/chap-secrets
-
-	cat > /etc/ppp/chap-secrets<<-EOF
-	# Secrets for authentication using CHAP
-	# client    server    secret    IP addresses
-	${username}    l2tpd    ${password}       *
-	EOF
-
+	echo "${username} l2tpd ${password} *" >> /etc/ppp/chap-secrets
 	firewall-cmd --reload
 	firewall-cmd --permanent --add-service=ipsec
 	firewall-cmd --permanent --add-service=xl2tpd
@@ -3068,6 +3100,7 @@ install_dnscrypt(){
 	make && make install
 	sleep 1
 	cd
+	rm -rf dnscrypt* libevent* libsodium*
 	mkdir ~/.dns
 	cd ~/.dns
 	dnscrypt-wrapper --gen-provider-keypair >> dns.log
@@ -3198,7 +3231,6 @@ install_dnscrypt(){
 	supervisorctl restart dnscrypt-proxy
 	systemctl restart pdnsd
 	systemctl restart dnsmasq
-	rm -rf dnscrypt* libevent* libsodium*
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
 	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5453 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
@@ -3257,6 +3289,7 @@ install_all(){
 	install_zsh
 	install_shadowsocks
 	install_l2tp
+	install_pptp
 	install_v2ray
 	install_supervisor
 	install_vlmcsd
@@ -3289,6 +3322,11 @@ finally(){
 	echo -e "Port:\033[41;30m999\033[0m"
 	echo -e "Password:\033[41;30m${sspasswd}\033[0m"
 	echo -e "Encryption:\033[41;30mchacha20-ietf-poly1305\033[0m"
+	echo ""
+	echo "PPTP VPN的相关配置:"
+	echo -e "Server IP:\033[41;30m${IP}\033[0m"
+	echo -e "Username:\033[41;30m${pptpuser}\033[0m"
+	echo -e "Password:\033[41;30m${pptppasswd}\033[0m"
 	echo ""
 	echo "L2TP VPN的相关配置:"
 	echo -e "Server IP:\033[41;30m${IP}\033[0m"
@@ -3444,6 +3482,7 @@ mainmenu(){
 	echo "(12) 安装vlmcsd"
 	echo "(13) 安装kcptun"
 	echo "(14) 安装dnscrypt"
+	echo "(15) 安装pptp"
 	echo ""
 	echo "#######################################################################"
 
@@ -3511,6 +3550,10 @@ mainmenu(){
 			install_dnscrypt
 			mainmenu
 			;;
+		15)
+			install_pptp
+			mainmenu
+			;;
 		*)
 			install_all
 			mainmenu
@@ -3521,7 +3564,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.27 ..."
+echo "GO GO GO v0.2.27 ..."
 echo ""
 echo "#######################################################################"
 echo ""
