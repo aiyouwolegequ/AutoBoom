@@ -481,7 +481,7 @@ install_ckrootkit_rkhunter(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	rkhunter --check --sk |grep Warning
+	rkhunter --check --sk | grep Warning
 	chkrootkit >> chkrootkit.log
 	cat chkrootkit.log| grep INFECTED 
 	mv /var/log/rkhunter/rkhunter.log ./

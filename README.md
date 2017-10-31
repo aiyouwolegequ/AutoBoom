@@ -17,13 +17,35 @@ chmod +x gogogo.sh
 (12) 安装vlmcsd       
 (13) 安装kcptun      
 (14) 安装dnscrypt         
-(15) 安装pptp
+(15) 安装pptp         
 
+Supervisor 相关命令:      
+service supervisord {start|stop|restart|status}    
+supervisorctl status      
+
+Chkrootkit 相关命令:     
+chkrootkit | grep INFECTED      
+
+Rkhunter 相关命令:     
+rkhunter --update        
+rkhunter --propupd        
+rkhunter --check --sk | grep Warning       
+
+Fail2ban 相关命令:     
+fail2ban-client status sshd 查看被屏蔽的IP列表      
+
+Lynis 相关命令:     
+lynis update info       
+lynis audit system       
+
+L2TP 相关命令:       
 l2tp -l 列出用户       
 l2tp -a 新增用户       
 l2tp -d 删除用户       
 l2tp -m 修改用户密码       
 
+Kcptun 相关命令:      
+supervisorctl {start|stop|restart|status} kcptun<id>       
 kcptun uninstall 卸载      
 kcptun update 检查更新       
 kcptun add 添加一个实例, 多端口加速      
@@ -32,16 +54,9 @@ kcptun show <id> 显示实例详细配置
 kcptun log <id> 显示实例日志         
 kcptun del <id> 删除一个实例      
 若不指定 <id>, 则默认为 1        
-  
 
-Supervisor 命令:      
-service supervisord {start|stop|restart|status}        
+Dnscrypt-Proxy 相关命令:    
+supervisorctl {start|stop|restart|status} dnscrypt-proxy      
 
-Kcptun 相关命令:      
-supervisorctl {start|stop|restart|status} kcptun<id>         
-
-Dnscrypt 相关命令:    
-supervisorctl {start|stop|restart|status} dnscrypt       
-
-Vlmcsd 相关命令:     
-supervisorctl {start|stop|restart|status} vlmcsd   
+Dnscrypt-Wrapper 相关命令:        
+dnscrypt-wrapper --show-provider-publickey --provider-publickey-file public.key          
