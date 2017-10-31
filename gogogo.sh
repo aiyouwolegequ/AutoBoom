@@ -3118,6 +3118,7 @@ install_dnscrypt(){
 	Restart=on-failure
 	EOF
 
+	systemctl daemon-reload
 	systemctl start dnscrypt-wrapper
 	systemctl enable dnscrypt-wrapper
 	yum install dnsmasq
