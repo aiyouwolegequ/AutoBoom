@@ -3085,13 +3085,6 @@ install_dnscrypt(){
 	clear
 
 	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
-	[program:dnscrypt-wrapper]
-	command = /usr/local/sbin/dnscrypt-wrapper --resolver-address=8.8.8.8:53 --listen-address=0.0.0.0:5453 --provider-name=2.dnscrypt-cert.${dnscrypt}.org --crypt-secretkey-file=/root/.dns/1.key --provider-cert-file=/root/.dns/1.cert
-	startsecs = 5
-	autostart = true
-	startretries = 3
-	user = nobody
-
 	[program:dnscrypt-proxy]
 	command = /usr/local/sbin/dnscrypt-proxy --local-address=127.0.0.1:5354 --resolver-address=178.216.201.222:2053 --provider-name=2.dnscrypt-cert.soltysiak.com --provider-key=25C4:E188:2915:4697:8F9C:2BBD:B6A7:AFA4:01ED:A051:0508:5D53:03E7:1928:C066:8F21
 	startsecs = 5
@@ -3104,6 +3097,29 @@ install_dnscrypt(){
 	supervisorctl update
 	supervisorctl reread
 	supervisorctl status
+
+	cat > /usr/lib/systemd/system/dnscrypt-wrapper.service<<-EOF
+	[Unit]
+	Description=DNSCrypt Server
+	After=network.target
+	Wants=network.target
+
+	[Install]
+	WantedBy=multi-user.target
+
+	[Service]
+	Type=simple
+	PIDFile=/var/run/dnscrypt-wrapper.pid
+	ExecStart=/usr/local/sbin/dnscrypt-wrapper --listen-address=0.0.0.0:5453 \
+	--resolver-address=8.8.8.8:53 \
+	--provider-name=2.dnscrypt-cert.${dnscrypt}.org \
+	--crypt-secretkey-file=/root/.dns/1.key \
+	--provider-cert-file=/root/.dns/1.cert \
+	Restart=on-failure
+	EOF
+
+	systemctl start dnscrypt-wrapper
+	systemctl enable dnscrypt-wrapper
 	yum install dnsmasq
 	wget http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
@@ -3498,7 +3514,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.1.25 ..."
+echo "GO GO GO v0.1.26 ..."
 echo ""
 echo "#######################################################################"
 echo ""
