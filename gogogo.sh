@@ -64,22 +64,22 @@ get_os_info(){
 	local host=$( hostname )
 	local kern=$( uname -r )
 	echo ""
-	echo "################ 系统信息 ################"
-	echo ""
-	echo "CPU 型号	: ${cname}"
-	echo "CPU 核心数	: ${cores}"
-	echo "CPU 频率	: ${freq} MHz"
-	echo "内存大小	: ${tram} MB"
-	echo "缓存大小	: ${swap} MB"
-	echo "开机运行时间	: ${up}"
-	echo "平均负载	: ${load}"
-	echo "系统		: ${opsy}"
-	echo "位数		: ${arch} (${lbit} Bit)"
-	echo "内核		: ${kern}"
-	echo "主机名		: ${host}"
-	echo "IP地址		: ${IP}"
-	echo ""
-	echo "########################################"
+	echo "################ 系统信息 ################" >>os.log
+	echo "" >>os.log
+	echo "CPU 型号	: ${cname}" >>os.log
+	echo "CPU 核心数	: ${cores}" >>os.log
+	echo "CPU 频率	: ${freq} MHz" >>os.log
+	echo "内存大小	: ${tram} MB" >>os.log
+	echo "缓存大小	: ${swap} MB" >>os.log
+	echo "开机运行时间	: ${up}" >>os.log
+	echo "平均负载	: ${load}" >>os.log
+	echo "系统		: ${opsy}" >>os.log
+	echo "位数		: ${arch} (${lbit} Bit)" >>os.log
+	echo "内核		: ${kern}" >>os.log
+	echo "主机名		: ${host}" >>os.log
+	echo "IP地址		: ${IP}" >>os.log
+	echo "" >>os.log
+	echo "########################################" >>os.log
 	echo ""
 	auto_continue
 }
@@ -3254,7 +3254,11 @@ clearsystem(){
 	echo "#######################################################################"
 	cd
 	rm -rf kcptun_bin.sh l2tp_bin.sh l2tp.sh
-	mv gogogo.sh /usr/local/bin/gogogo
+
+	if [ -e gogogo.sh ]; then
+		mv gogogo.sh /usr/local/bin/gogogo
+	fi
+	
 	yum autoremove
 	yum makecache
 	yum-complete-transaction --cleanup-only
@@ -3571,6 +3575,6 @@ echo ""
 rootness
 disable_selinux
 set_sysctl
-get_os_info > os.log
+get_os_info
 pre_install
 mainmenu
