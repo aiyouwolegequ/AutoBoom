@@ -3571,6 +3571,6 @@ echo ""
 rootness
 disable_selinux
 set_sysctl
-get_os_info
+get_os_info > os.log
 pre_install
 mainmenu
