@@ -79,7 +79,7 @@ get_os_info(){
 	echo "主机名		: ${host}" >>os.log
 	echo "IP地址		: ${IP}" >>os.log
 	echo "" >>os.log
-	echo "########################################" >>os.log
+	echo "#########################################" >>os.log
 	echo ""
 	auto_continue
 }
