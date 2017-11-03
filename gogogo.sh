@@ -709,7 +709,7 @@ install_shadowsocks(){
 	User=root
 	Group=root
 	LimitNOFILE=32768
-	ExecStart=/usr/bin/ss-server -a \$USER -c \$CONFFILE \$DAEMON_ARGS
+	ExecStart=/usr/local/bin/ss-server -a \$USER -c \$CONFFILE \$DAEMON_ARGS
 
 	[Install]
 	WantedBy=multi-user.target
