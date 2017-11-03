@@ -207,8 +207,6 @@ pre_install(){
 	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	rm -rf /etc/yum.repos.d/librehat-shadowsocks-epel-7.repo
-	wget -O /etc/yum.repos.d/librehat-shadowsocks-epel-7.repo https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
 	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel wget gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
 	ldconfig
 	easy_install pip
@@ -646,7 +644,25 @@ install_shadowsocks(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install shadowsocks-libev -y
+	
+	export LIBSODIUM_VER=1.0.13
+	wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
+	tar xvf libsodium-$LIBSODIUM_VER.tar.gz
+	pushd libsodium-$LIBSODIUM_VER
+	./configure --prefix=/usr && make
+	make install
+	popd
+	ldconfig
+
+	export MBEDTLS_VER=2.6.0
+	wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
+	tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
+	pushd mbedtls-$MBEDTLS_VER
+	make SHARED=1 CFLAGS=-fPIC
+	make DESTDIR=/usr install
+	popd
+	ldconfig
+
 	pip install greenlet
 	pip install gevent
 	firewall-cmd --zone=public --add-port=999/tcp --permanent
@@ -655,6 +671,12 @@ install_shadowsocks(){
 	firewall-cmd --list-ports
 	systemctl restart firewalld.service
 	systemctl -a | grep firewalld
+
+	git clone https://github.com/shadowsocks/shadowsocks-libev.git
+	git submodule update --init --recursive
+	./autogen.sh
+	./configure --with-sodium-include=/usr/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
+	make && make install
 
 	cat > /etc/shadowsocks-libev/config.json<<-EOF
 	{
@@ -670,7 +692,7 @@ install_shadowsocks(){
 	cat > /etc/sysconfig/shadowsocks-libev<<-EOF
 	START=yes
 	CONFFILE="/etc/shadowsocks-libev/config.json"
-	DAEMON_ARGS="-u --fast-open"
+	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port"
 	USER=root
 	GROUP=root
 	MAXFD=32768
@@ -679,7 +701,6 @@ install_shadowsocks(){
 	cat > /usr/lib/systemd/system/shadowsocks-libev.service<<-EOF
 	[Unit]
 	Description=Shadowsocks-libev Default Server Service
-	Documentation=man:shadowsocks-libev(8)
 	After=network.target
 
 	[Service]
@@ -3568,7 +3589,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v0.2.27 ..."
+echo "GO GO GO v1.2.27 ..."
 echo ""
 echo "#######################################################################"
 echo ""
