@@ -64,7 +64,7 @@ get_os_info(){
 	local host=$(hostname )
 	local kern=$(uname -r)
 	echo ""
-	echo "################ 系统信息 ################" >>os.log
+	echo "################ 系统信息 ################" >os.log
 	echo "" >>os.log
 	echo "CPU 型号	: ${cname}" >>os.log
 	echo "CPU 核心数	: ${cores}" >>os.log
@@ -80,6 +80,7 @@ get_os_info(){
 	echo "IP地址		: ${IP}" >>os.log
 	echo "" >>os.log
 	echo "#########################################" >>os.log
+	cat os.log
 	echo ""
 	auto_continue
 }
@@ -3588,7 +3589,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.2.28 ..."
+echo "GO GO GO v1.3.28 ..."
 echo ""
 echo "#######################################################################"
 echo ""
