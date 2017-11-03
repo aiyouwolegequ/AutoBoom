@@ -644,25 +644,6 @@ install_shadowsocks(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	
-	export LIBSODIUM_VER=1.0.13
-	wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
-	tar xvf libsodium-$LIBSODIUM_VER.tar.gz
-	pushd libsodium-$LIBSODIUM_VER
-	./configure --prefix=/usr && make
-	make install
-	popd
-	ldconfig
-
-	export MBEDTLS_VER=2.6.0
-	wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
-	tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
-	pushd mbedtls-$MBEDTLS_VER
-	make SHARED=1 CFLAGS=-fPIC
-	make DESTDIR=/usr install
-	popd
-	ldconfig
-
 	pip install greenlet
 	pip install gevent
 	firewall-cmd --zone=public --add-port=999/tcp --permanent
@@ -671,12 +652,30 @@ install_shadowsocks(){
 	firewall-cmd --list-ports
 	systemctl restart firewalld.service
 	systemctl -a | grep firewalld
-
 	git clone https://github.com/shadowsocks/shadowsocks-libev.git
+	cd shadowsocks-libev
 	git submodule update --init --recursive
+	export LIBSODIUM_VER=1.0.13
+	wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
+	tar xvf libsodium-$LIBSODIUM_VER.tar.gz
+	pushd libsodium-$LIBSODIUM_VER
+	./configure --prefix=/usr && make
+	make install
+	popd
+	ldconfig
+	export MBEDTLS_VER=2.6.0
+	wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
+	tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
+	pushd mbedtls-$MBEDTLS_VER
+	make SHARED=1 CFLAGS=-fPIC
+	make DESTDIR=/usr install
+	popd
+	ldconfig
 	./autogen.sh
 	./configure --with-sodium-include=/usr/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
 	make && make install
+	cd
+	rm -rf shadowsocks-libev
 
 	cat > /etc/shadowsocks-libev/config.json<<-EOF
 	{
@@ -686,7 +685,7 @@ install_shadowsocks(){
 	    "password":"${sspasswd}",
 	    "timeout":60,
 	    "method":"chacha20-ietf-poly1305"
-	 }
+	}
 	EOF
 
 	cat > /etc/sysconfig/shadowsocks-libev<<-EOF
