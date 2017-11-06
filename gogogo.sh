@@ -208,9 +208,43 @@ pre_install(){
 	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel libev-devel libsodium-devel ibevent mbedtls-devel m2crypto libtool-ltdl-devel libevent-devel wget gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
+	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
 	ldconfig
 	easy_install pip
+	pip install --upgrade pip
+
+	if [ ! -f /usr/local/lib/libsodium.so ];then
+		wget --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+		tar zxvf libsodium.tar.gz
+		pushd libsodium-stable
+		./configure --prefix=/usr 
+		make && make install
+		popd
+		echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
+		ldconfig
+	fi
+
+	if [ ! -d /usr/include/mbedtls ];then
+		wget --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
+		tar xvf mbedtls-2.6.0-gpl.tgz
+		pushd mbedtls-2.6.0
+		make SHARED=1 CFLAGS=-fPIC
+		make DESTDIR=/usr install
+		popd
+		ldconfig
+	fi
+
+	if [ ! -f /usr/local/lib/libevent.so ];then
+		wget --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+		tar zxvf libevent-2.1.8-stable.tar.gz
+		pushd libevent-2.1.8-stable
+		./configure
+		make && make install
+		popd
+		ldconfig
+	fi
+
+	rm -rf libsodium* mbedtls* libevent*
 	clear
 	echo "#######################################################################"
 	echo ""
@@ -447,6 +481,7 @@ install_ckrootkit_rkhunter(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
+	cd
 	yum install rkhunter -y
 	wget --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
@@ -484,6 +519,7 @@ install_ckrootkit_rkhunter(){
 	chkrootkit >> chkrootkit.log
 	cat chkrootkit.log| grep INFECTED 
 	mv /var/log/rkhunter/rkhunter.log ./
+	cd
 	rm -rf chkrootkit*
 	echo "#######################################################################"
 	echo ""
@@ -653,25 +689,10 @@ install_shadowsocks(){
 	firewall-cmd --list-ports
 	systemctl restart firewalld.service
 	systemctl -a | grep firewalld
+	cd
 	git clone https://github.com/shadowsocks/shadowsocks-libev.git
 	cd shadowsocks-libev
 	git submodule update --init --recursive
-	export LIBSODIUM_VER=1.0.13
-	wget https://download.libsodium.org/libsodium/releases/libsodium-$LIBSODIUM_VER.tar.gz
-	tar xvf libsodium-$LIBSODIUM_VER.tar.gz
-	pushd libsodium-$LIBSODIUM_VER
-	./configure --prefix=/usr && make
-	make install
-	popd
-	ldconfig
-	export MBEDTLS_VER=2.6.0
-	wget https://tls.mbed.org/download/mbedtls-$MBEDTLS_VER-gpl.tgz
-	tar xvf mbedtls-$MBEDTLS_VER-gpl.tgz
-	pushd mbedtls-$MBEDTLS_VER
-	make SHARED=1 CFLAGS=-fPIC
-	make DESTDIR=/usr install
-	popd
-	ldconfig
 	./autogen.sh
 	./configure --with-sodium-include=/usr/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
 	make && make install
@@ -916,7 +937,7 @@ install_l2tp(){
 	systemctl -a | grep ipsec
 	systemctl -a | grep xl2tpd
 	cd
-	wget https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
+	wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
 	chmod +x l2tp_bin.sh
 	./l2tp_bin.sh
 	sleep 3
@@ -1199,7 +1220,7 @@ install_supervisor(){
 			mainmenu
 		fi
 
-			( set -x; wget -O "$file" --no-check-certificate "$url" )
+			( set -x; wget  --tries=3 -O "$file" --no-check-certificate "$url" )
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -1427,9 +1448,9 @@ install_vlmcsd(){
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
-	wget -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
+	wget --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
 	chmod 0755 /usr/local/bin/vlmcsd
-	wget -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
+	wget --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
 
 	cat > /usr/lib/systemd/system/vlmcsd.service<<-EOF
@@ -1640,7 +1661,7 @@ install_kcptun(){
 
 	show_current_instance_info(){
 
-		wget https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/kcptun_bin.sh
+		wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/kcptun_bin.sh
 		chmod +x kcptun_bin.sh
 		./kcptun_bin.sh
 		local server_ip=
@@ -1869,7 +1890,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-			( set -x; wget -O "$file" --no-check-certificate "$url" )
+			( set -x; wget --tries=3 -O "$file" --no-check-certificate "$url" )
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -2714,7 +2735,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-		content="$(wget -qO- --no-check-certificate "$url")"
+		content="$(wget --tries=3 -qO- --no-check-certificate "$url")"
 
 		if [ "$?" != "0" ] || [ -z "$content" ]; then
 			retry=$(expr $retry + 1)
@@ -3090,21 +3111,6 @@ install_dnscrypt(){
 	echo "#######################################################################"
 	echo ""
 	dnscrypt=`randusername`
-	wget -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
-	tar zxvf libsodium.tar.gz
-	cd libsodium*
-	./configure
-	make && make install
-	echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
-	ldconfig
-	sleep 1
-	cd
-	wget https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
-	tar zxvf libevent-2.1.8-stable.tar.gz
-	cd libevent-2.1.8-stable
-	./configure && make
-	make install
-	sleep 1
 	cd
 	git clone --recursive git://github.com/cofyc/dnscrypt-wrapper.git
 	cd dnscrypt-wrapper
@@ -3114,14 +3120,14 @@ install_dnscrypt(){
 	ldconfig
 	sleep 1
 	cd
-	wget -O dnscrypt-proxy.tar.gz https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz
+	wget --tries=3 -O dnscrypt-proxy.tar.gz https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz
 	tar zxvf dnscrypt-proxy.tar.gz
 	cd dnscrypt-proxy*
 	./configure
 	make && make install
 	sleep 1
 	cd
-	rm -rf dnscrypt* libevent* libsodium*
+	rm -rf dnscrypt*
 	mkdir ~/.dns
 	cd ~/.dns
 	dnscrypt-wrapper --gen-provider-keypair >> dns.log
@@ -3181,7 +3187,7 @@ install_dnscrypt(){
 	systemctl start dnscrypt-wrapper
 	systemctl enable dnscrypt-wrapper
 	yum install dnsmasq
-	wget http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
+	wget --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
 	rm -rf pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	cp /etc/pdnsd.conf.sample /etc/pdnsd.conf
@@ -3589,7 +3595,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.3.28 ..."
+echo "GO GO GO v1.4.28 ..."
 echo ""
 echo "#######################################################################"
 echo ""
