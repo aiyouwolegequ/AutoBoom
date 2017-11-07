@@ -1485,9 +1485,9 @@ install_vlmcsd(){
 
 install_kcptun(){
 
-	SHELL_VERSION=0.1
-	CONFIG_VERSION=0.1
-	INIT_VERSION=0.1
+	SHELL_VERSION=20
+	CONFIG_VERSION=6
+	INIT_VERSION=3
 	KCPTUN_INSTALL_DIR='/usr/local/kcptun'
 	KCPTUN_LOG_DIR='/var/log/kcptun'
 	KCPTUN_RELEASES_URL='https://api.github.com/repos/xtaci/kcptun/releases'

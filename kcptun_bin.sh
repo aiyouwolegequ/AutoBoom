@@ -3,9 +3,9 @@ export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
 IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 KEY=$(cat /dev/urandom | head -n 10 | md5sum | awk -F ' ' '{print $1}' | cut -c-12)
-SHELL_VERSION=0.1
-CONFIG_VERSION=0.1
-INIT_VERSION=0.1
+SHELL_VERSION=20
+CONFIG_VERSION=6
+INIT_VERSION=3
 KCPTUN_INSTALL_DIR='/usr/local/kcptun'
 KCPTUN_LOG_DIR='/var/log/kcptun'
 KCPTUN_RELEASES_URL='https://api.github.com/repos/xtaci/kcptun/releases'
