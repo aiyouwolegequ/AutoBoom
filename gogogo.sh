@@ -2987,39 +2987,6 @@ install_kcptun(){
 					firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
 					firewall-cmd --reload
 				fi
-			else
-
-				cat >&1 <<-EOF
-				警告: 自动添加 firewalld 规则失败
-				如果有必要, 请手动添加端口 ${listen_port} 的防火墙规则:
-				    firewall-cmd --permanent --zone=public --add-port=${listen_port}/udp
-				    firewall-cmd --reload
-				EOF
-			fi
-		elif command_exists iptables; then
-			if ! ( service iptables status >/dev/null 2>&1 ); then
-				service iptables start >/dev/null 2>&1
-			fi
-
-			if [ "$?" = "0" ]; then
-				if [ -n "$current_listen_port" ]; then
-					iptables -D INPUT -p udp --dport ${current_listen_port} -j ACCEPT >/dev/null 2>&1
-				fi
-
-				if ! iptables -C INPUT -p udp --dport ${listen_port} -j ACCEPT >/dev/null 2>&1; then
-					iptables -I INPUT -p udp --dport ${listen_port} -j ACCEPT >/dev/null 2>&1
-					service iptables save
-					service iptables restart
-				fi
-			else
-
-				cat >&1 <<-EOF
-				警告: 自动添加 iptables 规则失败
-				如有必要, 请手动添加端口 ${listen_port} 的防火墙规则:
-				    iptables -I INPUT -p udp --dport ${listen_port} -j ACCEPT
-				    service iptables save
-				    service iptables restart
-				EOF
 			fi
 		fi
 	}
