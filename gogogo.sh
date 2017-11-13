@@ -761,7 +761,7 @@ install_shadowsocks(){
 	echo -e "Server IP:\033[41;30m${IP}\033[0m"
 	echo -e "Port:\033[41;30m999\033[0m"
 	echo -e "Password:\033[41;30m${sspasswd}\033[0m"
-	echo -e "Encryption:\033[41;30mchacha20-ietf-poly1305\033[0m"
+	echo -e "Encryption:\033[41;30maes-256-cfb\033[0m"
 	echo ""
 	echo "#######################################################################"
 	echo ""
