@@ -705,15 +705,15 @@ install_shadowsocks(){
 	    "server_port":999,
 	    "local_port":1080,
 	    "password":"${sspasswd}",
-	    "timeout":60,
-	    "method":"chacha20-ietf-poly1305"
+	    "timeout":600,
+	    "method":"aes-256-cfb"
 	}
 	EOF
 
 	cat > /etc/sysconfig/shadowsocks-libev<<-EOF
 	START=yes
 	CONFFILE="/etc/shadowsocks-libev/config.json"
-	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port"
+	DAEMON_ARGS="--acl /etc/shadowsocks-libev/local.acl -u --fast-open --no-delay --mtu 1300 --reuse-port"
 	USER=root
 	GROUP=root
 	MAXFD=32768
@@ -726,6 +726,7 @@ install_shadowsocks(){
 
 	[Service]
 	Type=simple
+	PIDFile=/var/run/shadowsocks.pid
 	EnvironmentFile=/etc/sysconfig/shadowsocks-libev
 	User=root
 	Group=root
@@ -736,6 +737,16 @@ install_shadowsocks(){
 	WantedBy=multi-user.target
 	EOF
 
+	cat > /etc/shadowsocks-libev/local.acl<<-EOF
+	[white_list]
+	127.0.0.1
+	::1
+	10.0.0.0/8
+	172.16.0.0/12
+	192.168.0.0/16
+	120.41.0.0/16
+	EOF
+	
 	systemctl daemon-reload
 	systemctl start shadowsocks-libev.service
 	systemctl enable shadowsocks-libev.service
@@ -3562,7 +3573,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.4.48 ..."
+echo "GO GO GO v1.4.68 ..."
 echo ""
 echo "#######################################################################"
 echo ""
