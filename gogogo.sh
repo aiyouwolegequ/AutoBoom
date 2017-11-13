@@ -110,7 +110,7 @@ rebootcheck(){
 set_sysctl(){
 
 	for each in `ls /proc/sys/net/ipv4/conf/`; do
-		echo "net.ipv4.conf.${each}.accept_source_route=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.accept_source_route=0" > /etc/sysctl.conf
 		echo "net.ipv4.conf.${each}.accept_redirects=0" >> /etc/sysctl.conf
 		echo "net.ipv4.conf.${each}.send_redirects=0" >> /etc/sysctl.conf
 		echo "net.ipv4.conf.${each}.rp_filter=0" >> /etc/sysctl.conf
@@ -3562,7 +3562,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.4.28 ..."
+echo "GO GO GO v1.4.48 ..."
 echo ""
 echo "#######################################################################"
 echo ""
