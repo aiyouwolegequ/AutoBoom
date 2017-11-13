@@ -713,7 +713,7 @@ install_shadowsocks(){
 	cat > /etc/sysconfig/shadowsocks-libev<<-EOF
 	START=yes
 	CONFFILE="/etc/shadowsocks-libev/config.json"
-	DAEMON_ARGS="--acl /etc/shadowsocks-libev/local.acl -u --fast-open --no-delay --mtu 1300 --reuse-port"
+	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port"
 	USER=root
 	GROUP=root
 	MAXFD=32768
