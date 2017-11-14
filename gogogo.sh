@@ -208,7 +208,7 @@ pre_install(){
 	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
+	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
 	ldconfig
 	easy_install pip
 	pip install --upgrade pip
