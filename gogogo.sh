@@ -553,30 +553,29 @@ install_fail2ban(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install fail2ban fail2ban-firewalld fail2ban-systemd -y
-	cp -pf /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+	yum install fail2ban fail2ban-firewalld fail2ban-systemd -yl
 
 	cat > /etc/fail2ban/jail.local<<-EOF
 	[DEFAULT]
-	bantime = 86400
+	banaction = firewallcmd-ipset
+	bantime  = 86400
 	findtime = 600
 	maxretry = 3
+	backend = systemd
+	ignoreip = 127.0.0.1/8 172.16.18.0/24 202.59.250.200 202.64.170.26 210.92.18.82 210.92.18.73
 	EOF
 
 	cat > /etc/fail2ban/jail.d/sshd.local<<-EOF
 	[sshd]
 	enabled = true
 	port = 10010
-	#action = firewallcmd-ipset
-	logpath = %(sshd_log)s
-	maxretry = 3
-	bantime = 86400
+	logpath  = /var/log/secure
 	EOF
 
 	systemctl enable firewalld
 	systemctl start firewalld
 	systemctl enable fail2ban
-	systemctl start fail2ban
+	systemctl restart fail2ban
 	fail2ban-client status
 	fail2ban-client status sshd
 	echo "#######################################################################"
