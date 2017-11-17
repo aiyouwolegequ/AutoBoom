@@ -200,6 +200,7 @@ pre_install(){
 	cat >/etc/profile<<-EOF
 	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 	EOF
+	hostnamectl set-hostname $(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 	if [ ! -f "/etc/yum.repos.d/CentOS-Base.repo.backup" ];then
 	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
 	fi
