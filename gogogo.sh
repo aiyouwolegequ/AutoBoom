@@ -734,7 +734,7 @@ install_shadowsocks(){
 	cd shadowsocks-libev
 	git submodule update --init --recursive
 	./autogen.sh
-	./configure --with-sodium-include=/usr/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
+	./configure --with-sodium-include=/usr/local/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
 	make && make install
 	cd
 	rm -rf shadowsocks-libev
@@ -3619,7 +3619,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.6.78 ..."
+echo "GO GO GO v1.7.78 ..."
 echo ""
 echo "#######################################################################"
 echo ""
