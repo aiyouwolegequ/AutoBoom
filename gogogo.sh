@@ -200,6 +200,12 @@ pre_install(){
 	cat >/etc/profile<<-EOF
 	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 	EOF
+	if [ ! -f "/etc/yum.repos.d/CentOS-Base.repo.backup" ];then
+	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+	fi
+	wget -O /etc/yum.repos.d/CentOS-Base.repo  http://mirrors.163.com/.help/CentOS7-Base-163.repo
+	yum clean all
+	yum makecache
 	source /etc/profile
 	rm -f /var/run/yum.pid
 	yum provides '*/applydeltarpm'
