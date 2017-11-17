@@ -739,6 +739,10 @@ install_shadowsocks(){
 	cd
 	rm -rf shadowsocks-libev
 
+	if [ ! -f "/etc/shadowsocks-libev/"];then
+		mkdir /etc/shadowsocks-libev/
+	fi
+
 	cat > /etc/shadowsocks-libev/config.json<<-EOF
 	{
 	    "server":"${IP}",
@@ -3619,7 +3623,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.7.78 ..."
+echo "GO GO GO v1.7.88 ..."
 echo ""
 echo "#######################################################################"
 echo ""
