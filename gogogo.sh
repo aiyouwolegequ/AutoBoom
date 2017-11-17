@@ -419,7 +419,11 @@ add_newuser(){
 				cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
 				echo "Port 10010" >>/etc/ssh/sshd_config
 				echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+				echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
+				echo "PermitUserEnvironment no" >> /etc/ssh/sshd_config
 				echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+				echo "IgnoreRhosts yes" >> /etc/ssh/sshd_config
+				echo "Protocol 2" >> /etc/ssh/sshd_config
 				sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
 				su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
 				su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
@@ -544,6 +548,30 @@ install_ckrootkit_rkhunter(){
 	auto_continue
 }
 
+install_aide(){
+
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装aide"
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	cd
+	yum install aide -y 
+	aide --init
+	cp -rf /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+	aide --check
+	aide --update
+	echo "#######################################################################"
+	echo ""
+	echo "aide安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	auto_continue
+}
+
 install_fail2ban(){
 
 	clear
@@ -553,7 +581,7 @@ install_fail2ban(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install fail2ban fail2ban-firewalld fail2ban-systemd -yl
+	yum install fail2ban fail2ban-firewalld fail2ban-systemd -y
 
 	cat > /etc/fail2ban/jail.local<<-EOF
 	[DEFAULT]
@@ -575,7 +603,7 @@ install_fail2ban(){
 	systemctl enable firewalld
 	systemctl start firewalld
 	systemctl enable fail2ban
-	systemctl restart fail2ban
+	systemctl start fail2ban
 	fail2ban-client status
 	fail2ban-client status sshd
 	echo "#######################################################################"
@@ -3316,6 +3344,7 @@ install_all(){
 	install_vlmcsd
 	install_kcptun
 	install_dnscrypt
+	install_aide
 	clearsystem
 	finally
 }
@@ -3504,6 +3533,7 @@ mainmenu(){
 	echo "(13) 安装kcptun"
 	echo "(14) 安装dnscrypt"
 	echo "(15) 安装pptp"
+	echo "(16) 安装aide"
 	echo ""
 	echo "#######################################################################"
 
@@ -3573,6 +3603,10 @@ mainmenu(){
 			;;
 		15)
 			install_pptp
+			mainmenu
+			;;
+		16)
+			install_aide
 			mainmenu
 			;;
 		*)
