@@ -219,7 +219,7 @@ pre_install(){
 		wget --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
 		tar zxvf libsodium.tar.gz
 		pushd libsodium-stable
-		./configure --prefix=/usr 
+		./configure
 		make && make install
 		popd
 		echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
@@ -3573,7 +3573,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.5.68 ..."
+echo "GO GO GO v1.6.68 ..."
 echo ""
 echo "#######################################################################"
 echo ""
