@@ -24,7 +24,7 @@ get_char(){
 
 tunavailable(){
 
-	if [[ ! -e /dev/net/tun ]]; then
+	if [ ! -e "/dev/net/tun" ]; then
 		echo "错误:无法安装L2TP" 1>&2
 		any_key_to_continue
 		mainmenu
@@ -35,7 +35,7 @@ disable_selinux(){
 
 	selinux=`getenforce`
 
-	if [[ "$selinux" = "Enforcing" ]] ; then
+	if [ "$selinux" = "Enforcing" ] ; then
 		sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
 		setenforce 0
 		echo "SElinux已禁用..."
@@ -46,7 +46,7 @@ disable_selinux(){
 
 get_opsy(){
 
-	[ -f /etc/redhat-release ] && awk '{print ($1,$3~/^[0-9]/?$3:$4)}' /etc/redhat-release && return
+	[ -f "/etc/redhat-release" ] && awk '{print ($1,$3~/^[0-9]/?$3:$4)}' /etc/redhat-release && return
 }
 
 get_os_info(){
@@ -215,7 +215,7 @@ pre_install(){
 	updatedb
 	locate inittab
 	
-	if [ ! -f /usr/local/lib/libsodium.so ];then
+	if [ ! -f "/usr/local/lib/libsodium.so" ];then
 		wget --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
 		tar zxvf libsodium.tar.gz
 		pushd libsodium-stable
@@ -226,7 +226,7 @@ pre_install(){
 		ldconfig
 	fi
 
-	if [ ! -d /usr/include/mbedtls ];then
+	if [ ! -d "/usr/include/mbedtls" ];then
 		wget --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
 		tar xvf mbedtls-2.6.0-gpl.tgz
 		pushd mbedtls-2.6.0
@@ -236,7 +236,7 @@ pre_install(){
 		ldconfig
 	fi
 
-	if [ ! -f /usr/local/lib/libevent.so ];then
+	if [ ! -f "/usr/local/lib/libevent.so" ];then
 		wget --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
 		tar zxvf libevent-2.1.8-stable.tar.gz
 		pushd libevent-2.1.8-stable
@@ -487,9 +487,7 @@ install_ckrootkit_rkhunter(){
 	yum install rkhunter -y
 	wget --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
-	if
-		[ -a chkrootkit.tar.gz ];
-	then	
+	if [ -a "chkrootkit.tar.gz" ];then	
 		tar zxf chkrootkit.tar.gz
 		cd chkrootkit-*
 		make clean
@@ -1272,28 +1270,28 @@ install_supervisor(){
 
 	config_install_supervisor(){
 
-		if [ ! -d /etc/supervisor/conf.d ]; then
+		if [ ! -d "/etc/supervisor/conf.d" ]; then
 			(
 				set -x
 				mkdir -p /etc/supervisor/conf.d
 			)
 		fi
 
-		if [ ! -f '/usr/local/bin/supervisord' ]; then
+		if [ ! -f "/usr/local/bin/supervisord" ]; then
 			(
 				set -x
 				ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
 			)
 		fi
 
-		if [ ! -f '/usr/local/bin/supervisorctl' ]; then
+		if [ ! -f "/usr/local/bin/supervisorctl" ]; then
 			(
 				set -x
 				ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
 			)
 		fi
 
-		if [ ! -f '/usr/local/bin/pidproxy' ]; then
+		if [ ! -f "/usr/local/bin/pidproxy" ]; then
 			(
 				set -x
 				ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
@@ -1351,7 +1349,7 @@ install_supervisor(){
 		fi
 	}
 
-	if [ -s /etc/supervisord.conf ] && command_exists supervisord; then
+	if [ -s "/etc/supervisord.conf" ] && command_exists supervisord; then
 
 		cat >&2 <<-EOF
 		检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
@@ -1367,7 +1365,7 @@ install_supervisor(){
 		mainmenu
 	fi
 
-	if [ -s /etc/supervisor/supervisord.conf ]&& command_exists supervisord;then
+	if [ -s "/etc/supervisor/supervisord.conf" ]&& command_exists supervisord;then
 		config_install_supervisor
 		download_startup_file
 		systemctl start supervisord.service
@@ -1451,13 +1449,13 @@ install_vlmcsd(){
 	firewall-cmd --zone=public --add-port=1688/udp --permanent
 	firewall-cmd --reload
 
-	if [ -s /etc/init.d/vlmcsd ]; then
+	if [ -s "/etc/init.d/vlmcsd" ]; then
 		/etc/init.d/vlmcsd stop
 		/sbin/chkconfig --del vlmcsd
 		rm -f /etc/init.d/vlmcsd
 	fi
 
-	if [ -s /usr/local/bin/vlmcsdmulti-x64-musl-static ]; then
+	if [ -s "/usr/local/bin/vlmcsdmulti-x64-musl-static" ]; then
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
@@ -2818,28 +2816,28 @@ install_kcptun(){
 
 	config_install_supervisor(){
 
-		if [ ! -d /etc/supervisor/conf.d ]; then
+		if [ ! -d "/etc/supervisor/conf.d" ]; then
 			(
 				set -x
 				mkdir -p /etc/supervisor/conf.d
 			)
 		fi
 
-		if [ ! -f '/usr/local/bin/supervisord' ]; then
+		if [ ! -f "/usr/local/bin/supervisord" ]; then
 			(
 				set -x
 				ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
 			)
 		fi
 
-		if [ ! -f '/usr/local/bin/supervisorctl' ]; then
+		if [ ! -f "/usr/local/bin/supervisorctl" ]; then
 			(
 				set -x
 				ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
 			)
 		fi
 
-		if [ ! -f '/usr/local/bin/pidproxy' ]; then
+		if [ ! -f "/usr/local/bin/pidproxy" ]; then
 			(
 				set -x
 				ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
@@ -3058,7 +3056,7 @@ install_kcptun(){
 	install_deps
 	kcptun_install
 
-	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
+	if [ ! -e "/usr/lib/systemd/system/supervisord.service" ]; then
 		install_supervisor
 	fi
 
@@ -3123,7 +3121,7 @@ install_dnscrypt(){
 	firewall-cmd --permanent --zone=public --add-port=53/udp
 	firewall-cmd --reload
 
-	if [ ! -e /usr/lib/systemd/system/supervisord.service ]; then
+	if [ ! -e "/usr/lib/systemd/system/supervisord.service" ]; then
 		install_supervisor
 	fi
 
@@ -3262,7 +3260,7 @@ clearsystem(){
 	cd
 	rm -rf kcptun_bin.sh l2tp_bin.sh l2tp.sh
 
-	if [ -e gogogo.sh ]; then
+	if [ -e "gogogo.sh" ]; then
 		mv gogogo.sh /usr/local/bin/gogogo
 	fi
 	
@@ -3575,7 +3573,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.4.68 ..."
+echo "GO GO GO v1.5.68 ..."
 echo ""
 echo "#######################################################################"
 echo ""
