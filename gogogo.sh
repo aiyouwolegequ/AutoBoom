@@ -397,21 +397,28 @@ add_newuser(){
 			echo "更换ssh端口为10010，禁用root登陆ssh，禁用密码认证，设置免密钥登陆"
 			echo ""
 			echo "#######################################################################"
-			cp -r /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
+
+			if [ ! -d "/etc/firewalld/services/ssh.xml" ];then
+			cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
+			fi
+			
 			sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
 			firewall-cmd --zone=public --add-port=10010/tcp --permanent
 			firewall-cmd --reload 
 			semanage port -a -t ssh_port_t -p tcp 10010
 			semanage port -l |grep ssh
-			cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
-			echo "Port 10010" >>/etc/ssh/sshd_config
-			echo "PermitRootLogin no" >> /etc/ssh/sshd_config
-			echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
-			sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
-			su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
-			su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
-			su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
-			su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
+
+			if [ ! -d "/etc/ssh/sshd_config.bak" ];then
+				cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+				echo "Port 10010" >>/etc/ssh/sshd_config
+				echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+				echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+				sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+				su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
+				su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
+				su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
+				su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
+			fi
 
 			while :
 			do
