@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=1.9.9
+SHELL_VERSION=2.0.0
 IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 
 rootness(){
@@ -98,9 +98,6 @@ rebootcheck(){
 	case $xy1 in
 		y|Y)
 		init 6
-		;;
-		n|N)
-		submenu1
 		;;
 		*)
 		submenu1
@@ -239,7 +236,7 @@ pre_install(){
 		rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 	fi
 
-	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel psmisc mlocate sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -y
+	yum install gcc gettext swig autoconf libtool python-setuptools automake tree pcre-devel psmisc mlocate sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -y
 	ldconfig
 	easy_install pip
 	pip install --upgrade pip
@@ -367,9 +364,6 @@ changerootpasswd(){
 				echo ""
 				any_key_to_continue
 				;;
-			n|N)
-				any_key_to_continue
-				;;
 			*)
 				any_key_to_continue
 				;;
@@ -403,11 +397,17 @@ add_newuser(){
 				echo "#######################################################################"
 				echo ""
 				;;
-			n|N)
-				any_key_to_continue
-				;;
 			*)
 				any_key_to_continue
+				clear
+				echo "#######################################################################"
+				echo ""
+				echo "现有的普通账户为:"
+				getent passwd | grep home | awk -F: '{print $1}'
+				echo ""
+				echo "#######################################################################"
+				read -p "请输入需要设置ssh的普通账户:" setssh
+				newusername=${setssh}
 				;;
 		esac		
 
@@ -421,15 +421,19 @@ add_newuser(){
 			echo ""
 			echo "#######################################################################"
 
-			if [ ! -d "/etc/firewalld/services/ssh.xml" ];then
-			cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
+			if [ ! -f "/etc/firewalld/services/ssh.xml" ];then
+				cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
 			fi
 			
-			sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
-			firewall-cmd --zone=public --add-port=10010/tcp --permanent
-			firewall-cmd --reload 
+			port=`cat /etc/firewalld/services/ssh.xml | grep port | awk '{print $3}' | cut -f 2 -d \"`
 
-			if [ ! -d "/etc/ssh/sshd_config.bak" ];then
+			if [ "$port" != "10010" ];then
+				sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
+				firewall-cmd --zone=public --add-port=10010/tcp --permanent
+				firewall-cmd --reload 
+			fi
+
+			if [ ! -f "/etc/ssh/sshd_config.bak" ];then
 				cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
 				echo "Port 10010" >>/etc/ssh/sshd_config
 				echo "PermitRootLogin no" >> /etc/ssh/sshd_config
@@ -439,6 +443,10 @@ add_newuser(){
 				echo "IgnoreRhosts yes" >> /etc/ssh/sshd_config
 				echo "Protocol 2" >> /etc/ssh/sshd_config
 				sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+			fi
+
+			if [ -d "/home/${newusername}/.ssh" ];then
+				rm -rf /home/${newusername}/.ssh
 			fi
 
 			su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
@@ -464,14 +472,9 @@ add_newuser(){
 			systemctl restart sshd.service
 			echo "请使用该命令测试ssh是否正常: ssh -p 10010 ${newusername}@${IP}"
 			echo "#######################################################################"
-
 			read -p "请确认ssh是否正常? (y/n) [默认=y]:" yy
 				echo "#######################################################################"
 				case "$yy" in
-					y|Y)
-						echo ""
-						any_key_to_continue
-						;;
 					n|N)
 						clear
 						echo "#######################################################################"
@@ -485,20 +488,29 @@ add_newuser(){
 						firewall-cmd --zone=public --remove-port=10010/tcp --permanent
 						firewall-cmd --reload
 						systemctl restart sshd
-						echo "请使用该命令测试ssh是否正常: ssh root@${IP}"
-						echo "请在脚本完成后手动设置ssh密钥登陆"
+						clear
 						echo "#######################################################################"
-						echo ""
-						any_key_to_continue
+						echo "请使用该命令测试ssh是否正常: ssh root@${IP}"
+						read -p "如果ssh不正常请退出脚本手动检查ssh配置,是否恢复正常? (y/n) [默认=y]:" zz
+						case "$zz" in
+							n|N)
+								exit
+								;;
+							*)
+								clear
+								echo "#######################################################################"
+								echo "请在脚本完成后手动设置ssh密钥登陆"
+								echo "#######################################################################"
+								echo ""
+								any_key_to_continue
+								;;
+						esac
 						;;
 					*)
 						echo ""
 						any_key_to_continue
 						;;
 				esac
-			;;
-		n|N)
-			any_key_to_continue
 			;;
 		*)
 			any_key_to_continue
@@ -762,7 +774,7 @@ install_shadowsocks(){
 	cd
 	rm -rf shadowsocks-libev
 
-	if [ ! -f "/etc/shadowsocks-libev/"];then
+	if [ ! -d "/etc/shadowsocks-libev/"];then
 		mkdir /etc/shadowsocks-libev/
 	fi
 
@@ -3436,10 +3448,6 @@ finally(){
 		y|Y)
 			init 6
 			;;
-		n|N)
-			any_key_to_continue
-			mainmenu
-			;;
 		*)
 			any_key_to_continue
 			mainmenu
@@ -3467,12 +3475,6 @@ submenu1(){
 	case $xx1 in
 		0)
 			mainmenu
-			;;
-		1)
-			updatesystem
-			updatekernel
-			clearsystem
-			rebootcheck
 			;;
 		2)
 			updatesystem
@@ -3514,11 +3516,6 @@ submenu2(){
 	case $xx2 in
 		0)
 			mainmenu
-			;;
-		1)
-			changerootpasswd
-			add_newuser
-			submenu2
 			;;
 		2)
 			changerootpasswd
@@ -3571,10 +3568,6 @@ mainmenu(){
 	case $xx in
 		0)
 			exit
-			;;
-		1)
-			install_all
-			mainmenu
 			;;
 		2)
 			submenu1
