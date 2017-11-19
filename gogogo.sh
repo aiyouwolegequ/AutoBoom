@@ -239,7 +239,7 @@ pre_install(){
 		rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 	fi
 
-	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel psmisc mlocate sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
+	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel psmisc mlocate sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -y
 	ldconfig
 	easy_install pip
 	pip install --upgrade pip
@@ -299,14 +299,14 @@ updatesystem(){
 	cd
 	yum upgrade -y
 	yum update -y
-	yum autoremove
+	yum autoremove -y
 	yum makecache
-	yum-complete-transaction --cleanup-only
+	yum-complete-transaction --cleanup-only -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
 	package-cleanup --problems
 	rpm -Va --nofiles --nodigest
-	yum clean all
+	yum clean all -y
 	rm -rf /var/cache/yum
 	rpm --rebuilddb
 	echo "#######################################################################"
@@ -332,10 +332,7 @@ updatekernel(){
 	modprobe tcp_bbr
 	modprobe tcp_htcp
 	modprobe tcp_hybla
-	echo "tcp_bbr" >> /etc/modules-load.d/modules.conf
-	sysctl net.ipv4.tcp_available_congestion_control
-	lsmod | grep bbr
-	sysctl -p
+	echo "tcp_bbr" > /etc/modules-load.d/modules.conf
 	echo "#######################################################################"
 	echo ""
 	echo "升级完毕！"
@@ -431,8 +428,6 @@ add_newuser(){
 			sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
 			firewall-cmd --zone=public --add-port=10010/tcp --permanent
 			firewall-cmd --reload 
-			semanage port -a -t ssh_port_t -p tcp 10010
-			semanage port -l |grep ssh
 
 			if [ ! -d "/etc/ssh/sshd_config.bak" ];then
 				cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
@@ -444,11 +439,12 @@ add_newuser(){
 				echo "IgnoreRhosts yes" >> /etc/ssh/sshd_config
 				echo "Protocol 2" >> /etc/ssh/sshd_config
 				sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
-				su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
-				su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
-				su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
-				su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
 			fi
+
+			su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
+			su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
+			su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
+			su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
 
 			while :
 			do
@@ -488,7 +484,6 @@ add_newuser(){
 						sed -i 's/10010/22/g' /etc/firewalld/services/ssh.xml
 						firewall-cmd --zone=public --remove-port=10010/tcp --permanent
 						firewall-cmd --reload
-						semanage port -d -t ssh_port_t -p tcp 10010
 						systemctl restart sshd
 						echo "请使用该命令测试ssh是否正常: ssh root@${IP}"
 						echo "请在脚本完成后手动设置ssh密钥登陆"
@@ -553,7 +548,7 @@ install_ckrootkit_rkhunter(){
 	echo "#######################################################################"
 	echo ""
 	rkhunter --check --sk | grep Warning
-	chkrootkit >> chkrootkit.log
+	chkrootkit > chkrootkit.log
 	cat chkrootkit.log| grep INFECTED 
 	mv /var/log/rkhunter/rkhunter.log ./
 	cd
@@ -918,7 +913,7 @@ install_l2tp(){
 	echo "#######################################################################"
 	echo ""
 	any_key_to_continue
-	yum -y install libreswan xl2tpd
+	yum install libreswan xl2tpd -y
 	sysctl -p
 	systemctl start ipsec
 	systemctl start xl2tpd	
@@ -3136,7 +3131,7 @@ install_kcptun(){
 	set_firewall
 	start_supervisor
 	enable_supervisor
-	show_current_instance_info >> kcptun.log
+	show_current_instance_info > kcptun.log
 	clear
 	echo "#######################################################################"
 	echo "请保存好Kcptun配置！"
@@ -3180,7 +3175,7 @@ install_dnscrypt(){
 	rm -rf dnscrypt*
 	mkdir ~/.dns
 	cd ~/.dns
-	dnscrypt-wrapper --gen-provider-keypair >> dns.log
+	dnscrypt-wrapper --gen-provider-keypair > dns.log
 	pub=$(cat dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
 	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=1.key
 	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=1.key --provider-cert-file=1.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
@@ -3236,7 +3231,7 @@ install_dnscrypt(){
 	systemctl daemon-reload
 	systemctl start dnscrypt-wrapper
 	systemctl enable dnscrypt-wrapper
-	yum install dnsmasq
+	yum install dnsmasq -y
 	wget --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
 	rm -rf pdnsd-1.2.9a-par_sl6.x86_64.rpm
@@ -3336,17 +3331,16 @@ clearsystem(){
 		mv gogogo.sh /usr/local/bin/gogogo
 	fi
 	
-	yum autoremove
+	yum autoremove -y
 	yum makecache
-	yum-complete-transaction --cleanup-only
+	yum-complete-transaction --cleanup-only -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
 	package-cleanup --problems
 	rpm -Va --nofiles --nodigest
-	yum clean all
+	yum clean all -y
 	rm -rf /var/cache/yum
 	rpm --rebuilddb
-	yum update -y
 	echo "#######################################################################"
 	echo ""
 	echo "清理完毕！"
