@@ -1,6 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
+SHELL_VERSION=1.9.9
 IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
 
 rootness(){
@@ -197,14 +198,23 @@ pre_install(){
 	echo "预安装相关软件！"
 	echo ""
 	echo "#######################################################################"
+
 	cat >/etc/profile<<-EOF
 	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 	EOF
+
 	hostnamectl set-hostname $(wget -qO- -t1 -T2 ipv4.icanhazip.com)
+
 	if [ ! -f "/etc/yum.repos.d/CentOS-Base.repo.backup" ];then
-	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
+		mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
 	fi
-	wget -O /etc/yum.repos.d/CentOS-Base.repo  http://mirrors.163.com/.help/CentOS7-Base-163.repo
+
+	str=`sed -n '/^name/p' /etc/yum.repos.d/CentOS-Base.repo | awk '{print $5}' | sort | uniq`
+
+	if [ -z "$str" ];then
+		wget -O /etc/yum.repos.d/CentOS-Base.repo  http://mirrors.163.com/.help/CentOS7-Base-163.repo
+	fi
+
 	yum clean all
 	yum makecache
 	source /etc/profile
@@ -212,9 +222,23 @@ pre_install(){
 	yum provides '*/applydeltarpm'
 	yum install epel-release elrepo-release yum-fastestmirror yum-utils deltarpm -y
 	yum groupinstall "Development Tools" -y
-	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-	rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+
+	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
+		rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+	fi
+
+	str=`rpm -qa |grep elrepo-release`
+
+	if [ -z "$str" ];then
+		rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+	fi
+
+	str=`rpm -qa |grep epel-release`
+
+	if [ -z "$str" ];then
+		rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+	fi
+
 	yum install gcc gettext swig autoconf libtool python-setuptools automake pcre-devel psmisc mlocate sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar  policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make selinux-policy-devel ppp -y
 	ldconfig
 	easy_install pip
@@ -273,11 +297,8 @@ updatesystem(){
 	echo ""
 	echo "#######################################################################"
 	cd
-	yum check-update
-	yum info updates
 	yum upgrade -y
 	yum update -y
-	yum repolist
 	yum autoremove
 	yum makecache
 	yum-complete-transaction --cleanup-only
@@ -288,8 +309,6 @@ updatesystem(){
 	yum clean all
 	rm -rf /var/cache/yum
 	rpm --rebuilddb
-	yum update -y
-	cat /etc/redhat-release
 	echo "#######################################################################"
 	echo ""
 	echo "升级完毕！"
@@ -653,54 +672,63 @@ install_zsh(){
 	echo "#######################################################################"
 	echo ""
 	cd
-	umask g-w,o-w
+	yum install zsh -y
+
+	if [ -d "$ZSH" ]; then
+		upgrade_oh_my_zsh
+	fi
 
 	if [ ! -n "$ZSH" ]; then
 		ZSH=~/.oh-my-zsh
+		umask g-w,o-w
+		env git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $ZSH
+
+		if [ -f ~/.zshrc ] || [ -h ~/.zshrc ]; then
+			mv ~/.zshrc ~/.zshrc.pre-oh-my-zsh
+		fi
+
+		cp $ZSH/templates/zshrc.zsh-template ~/.zshrc
+		sed "/^export ZSH=/ c\\
+		export ZSH=$ZSH
+		" ~/.zshrc > ~/.zshrc-omztemp
+		mv -f ~/.zshrc-omztemp ~/.zshrc
+		cd /root/.oh-my-zsh/themes
+		git clone https://github.com/dracula/zsh.git
+		mv zsh/dracula.zsh-theme .
+		rm -rf zsh
+		sed -i 's/robbyrussell/dracula/g' ~/.zshrc
+		sed -i 's/plugins=(git)/plugins=(sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search)/g' ~/.zshrc
+		cd /root/.oh-my-zsh/plugins
+		git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
+		git clone https://github.com/zsh-users/zsh-autosuggestions.git
+		git clone https://github.com/zsh-users/zsh-history-substring-search.git
+
+		cat >> /root/.zshrc<<-EOF
+		export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+		alias vizsh="vim ~/.zshrc"
+		alias sourcezsh="source ~/.zshrc"
+		EOF
+
+		source /root/.zshrc
+		TEST_CURRENT_SHELL=$(expr "$SHELL" : '.*/\(.*\)')
+
+		if [ "$TEST_CURRENT_SHELL" != "zsh" ]; then
+			if hash chsh >/dev/null 2>&1; then
+				clear
+				cd
+				chsh -s /bin/zsh root
+				echo "#######################################################################"
+				echo ""
+				echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!"
+				echo "千万不要按Ctrl + C退出脚本!!!"
+				echo ""
+				echo "#######################################################################"
+			else
+				echo "请手动修改默认shell为zsh!"
+			fi
+		fi
 	fi
 
-	env git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $ZSH
-	cp $ZSH/templates/zshrc.zsh-template ~/.zshrc
-	sed "/^export ZSH=/ c\\
-	export ZSH=$ZSH
-	" ~/.zshrc > ~/.zshrc-omztemp
-	mv -f ~/.zshrc-omztemp ~/.zshrc
-
-	cd /root/.oh-my-zsh/themes
-	git clone https://github.com/dracula/zsh.git
-	mv zsh/dracula.zsh-theme .
-	rm -rf zsh
-	sed -i 's/robbyrussell/dracula/g' ~/.zshrc
-	sed -i 's/plugins=(git)/plugins=(sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search)/g' ~/.zshrc
-	cd /root/.oh-my-zsh/plugins
-	git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
-	git clone https://github.com/zsh-users/zsh-autosuggestions.git
-	git clone https://github.com/zsh-users/zsh-history-substring-search.git
-
-	cat >> /root/.zshrc<<-EOF
-	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-	alias vizsh="vim ~/.zshrc"
-	alias sourcezsh="source ~/.zshrc"
-	EOF
-
-	source /root/.zshrc
-	TEST_CURRENT_SHELL=$(expr "$SHELL" : '.*/\(.*\)')
-
-	if [ "$TEST_CURRENT_SHELL" != "zsh" ]; then
-  		if hash chsh >/dev/null 2>&1; then
-  			clear
-  			cd
- 		 	chsh -s /bin/zsh root
- 		 	echo "#######################################################################"
-			echo ""
- 		 	echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!"
- 		 	echo "千万不要按Ctrl + C退出脚本!!!"
-			echo ""
-			echo "#######################################################################"
-	else
-  			echo "请手动修改默认shell为zsh!"
- 		fi
-	fi
   	env zsh
 	echo "#######################################################################"
 	echo ""
@@ -3623,7 +3651,7 @@ mainmenu(){
 clear
 echo "#######################################################################"
 echo ""
-echo "GO GO GO v1.7.88 ..."
+echo "GO GO GO v$SHELL_VERSION ..."
 echo ""
 echo "#######################################################################"
 echo ""
