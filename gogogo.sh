@@ -1,13 +1,13 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.0.0
-IP=$(wget -qO- -t1 -T2 ipv4.icanhazip.com)
+SHELL_VERSION=2.1.3
+IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
 
 	if [ $(id -u) != "0" ]; then
-		echo "错误:该脚本需要root权限运行!请切换至root权限！"
+		echo "错误:该脚本需要root权限运行!请切换至root权限!"
 		exit 1
 	fi
 }
@@ -93,9 +93,9 @@ command_exists(){
 
 rebootcheck(){
 
-	read -p "刚刚更新了系统内核，是否重启系统 ? (y/n) [默认=n]:" xy1
+	read -p "刚刚更新了系统内核，是否重启系统 ? (y/n) [默认=n]:" input
 	echo "#######################################################################"
-	case $xy1 in
+	case $input in
 		y|Y)
 		init 6
 		;;
@@ -107,14 +107,7 @@ rebootcheck(){
 
 set_sysctl(){
 
-	for each in `ls /proc/sys/net/ipv4/conf/`; do
-		echo "net.ipv4.conf.${each}.accept_source_route=0" > /etc/sysctl.conf
-		echo "net.ipv4.conf.${each}.accept_redirects=0" >> /etc/sysctl.conf
-		echo "net.ipv4.conf.${each}.send_redirects=0" >> /etc/sysctl.conf
-		echo "net.ipv4.conf.${each}.rp_filter=0" >> /etc/sysctl.conf
-	done
-
-	echo "net.core.default_qdisc = fq" >> /etc/sysctl.conf
+	echo "net.core.default_qdisc = fq" > /etc/sysctl.conf
 	echo "net.core.rmem_max = 67108864" >> /etc/sysctl.conf
 	echo "net.core.wmem_max = 67108864" >> /etc/sysctl.conf
 	echo "net.core.somaxconn = 4096" >> /etc/sysctl.conf
@@ -140,6 +133,14 @@ set_sysctl(){
 	echo "net.ipv4.tcp_syncookies = 1" >> /etc/sysctl.conf
 	echo "vm.min_free_kbytes = 65536" >> /etc/sysctl.conf
 	echo "fs.file-max = 51200" >> /etc/sysctl.conf
+
+	for each in `ls /proc/sys/net/ipv4/conf/`; 
+	do
+		echo "net.ipv4.conf.${each}.accept_source_route=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.accept_redirects=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.send_redirects=0" >> /etc/sysctl.conf
+		echo "net.ipv4.conf.${each}.rp_filter=0" >> /etc/sysctl.conf
+	done
 }
 
 any_key_to_continue(){
@@ -187,64 +188,115 @@ randpasswd(){
 	echo ${str}
 }
 
+check_port(){
+
+	is_number(){
+
+		expr $1 + 1 >/dev/null 2>&1
+	}
+
+	is_port(){
+
+		local port=$1
+		is_number "$port" && \
+			[ $port -ge 1 ] && [ $port -le 65535 ]
+	}
+
+	local input=
+	[ -z "$listen_port" ] && listen_port="$d_listen_port"
+
+	while :
+	do
+		read -p "(请输入新端口: 默认为${listen_port}): " input
+		if [ -n "$input" ]; then
+			if is_port "$input"; then
+				listen_port="$input"
+			else
+				echo "输入有误, 请输入 1~65535 之间的数字!"
+				continue
+			fi
+		fi
+
+		port_using=`lsof -nP -itcp:"$listen_port" | wc -l`
+
+		if [ "$port_using" -ne 0 ]; then
+			echo "端口已被占用, 请重新输入!"
+			continue
+		else
+			if [ `firewall-cmd --list-ports | grep "$listen_port" |wc -l` -ne 1 ]; then 
+				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/tcp
+				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
+				firewall-cmd --reload
+			fi
+		fi
+		listen_port="$input"
+		break
+	done
+}
+
 pre_install(){
 
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "预安装相关软件！"
+	echo "预安装相关软件!请耐心等待!"
 	echo ""
 	echo "#######################################################################"
+	echo ""
+	LANG="en_US.UTF-8"
 
-	cat >/etc/profile<<-EOF
+	cat > /etc/profile<<-EOF
 	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+	export LC_ALL=en_US.UTF-8
 	EOF
 
-	hostnamectl set-hostname $(wget -qO- -t1 -T2 ipv4.icanhazip.com)
-
-	if [ ! -f "/etc/yum.repos.d/CentOS-Base.repo.backup" ];then
-		mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup
-	fi
-
-	str=`sed -n '/^name/p' /etc/yum.repos.d/CentOS-Base.repo | awk '{print $5}' | sort | uniq`
-
-	if [ -z "$str" ];then
-		wget -O /etc/yum.repos.d/CentOS-Base.repo  http://mirrors.163.com/.help/CentOS7-Base-163.repo
-	fi
-
-	yum clean all
-	yum makecache
 	source /etc/profile
-	rm -f /var/run/yum.pid
-	yum provides '*/applydeltarpm'
-	yum install epel-release elrepo-release yum-fastestmirror yum-utils deltarpm -y
-	yum groupinstall "Development Tools" -y
+	hostnamectl set-hostname ${IP}
+	yum clean all -q 
+
+	if [ ! -f "/etc/yum.conf.bak" ]; then
+		cp /etc/yum.conf /etc/yum.conf.bak
+		echo "minrate=1" >> /etc/yum.conf
+		echo "timeout=300" >> /etc/yum.conf
+	fi
+
+	groupinstalled=`yum grouplist | grep -A 1 "Installed Groups" | sed -n 2p | awk '{print $1}'`
+
+	if [ "$groupinstalled" != "Development" ];then
+		yum groupinstall "Development Tools" -q -y
+	fi
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
-		rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	fi
 
-	str=`rpm -qa |grep elrepo-release`
+	for a in elrepo-release epel-release yum-plugin-fastestmirror yum-utils deltarpm 
+	do
+		if [ `rpm -qa | grep $a |wc -l` -ne 1 ];then
+			yum install $a -q -y
+		fi
+	done
 
-	if [ -z "$str" ];then
-		rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
-	fi
+	while [ `rpm -qa |grep epel-release | wc -l` -eq 0 ]
+	do 
+		sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel.repo
+		sed -i "s/^metalink/#metalink/g" /etc/yum.repos.d/epel.repo
+		sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel-testing.repo
+		sed -i "s/^metalink/#metalink/g" /etc/yum.repos.d/epel-testing.repo
+	done
 
-	str=`rpm -qa |grep epel-release`
+	yum makecache -q 
+	rm -f /var/run/yum.pid
 
-	if [ -z "$str" ];then
-		rpm -Uvh http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-	fi
-
-	yum install gcc gettext swig autoconf libtool python-setuptools automake tree pcre-devel psmisc mlocate sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc+ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -y
+	yum install gcc gettext swig autoconf libtool python-setuptools automake tree pcre-devel psmisc curl unzip mlocate lsof sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc-c++ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -q -y
 	ldconfig
 	easy_install pip
-	pip install --upgrade pip
+	pip install --upgrade pip -q
 	updatedb
 	locate inittab
-	
+
 	if [ ! -f "/usr/local/lib/libsodium.so" ];then
-		wget --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+		wget -q --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
 		tar zxvf libsodium.tar.gz
 		pushd libsodium-stable
 		./configure
@@ -255,7 +307,7 @@ pre_install(){
 	fi
 
 	if [ ! -d "/usr/include/mbedtls" ];then
-		wget --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
+		wget -q --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
 		tar xvf mbedtls-2.6.0-gpl.tgz
 		pushd mbedtls-2.6.0
 		make SHARED=1 CFLAGS=-fPIC
@@ -265,7 +317,7 @@ pre_install(){
 	fi
 
 	if [ ! -f "/usr/local/lib/libevent.so" ];then
-		wget --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+		wget -q --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
 		tar zxvf libevent-2.1.8-stable.tar.gz
 		pushd libevent-2.1.8-stable
 		./configure
@@ -278,7 +330,7 @@ pre_install(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "预安装完成！"
+	echo "预安装完成!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -293,22 +345,24 @@ updatesystem(){
 	echo "正在升级系统"
 	echo ""
 	echo "#######################################################################"
+	echo "请耐心等待!"
 	cd
-	yum upgrade -y
-	yum update -y
-	yum autoremove -y
-	yum makecache
-	yum-complete-transaction --cleanup-only -y
+	rm -f /var/run/yum.pid
+	yum upgrade -q -y
+	yum update -q -y
+	yum autoremove -q -y
+	yum makecache -q
+	yum-complete-transaction --cleanup-only -q -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
 	package-cleanup --problems
-	rpm -Va --nofiles --nodigest
-	yum clean all -y
+	rpm --quiet -Va --nofiles --nodigest
+	yum clean all -q -y
 	rm -rf /var/cache/yum
-	rpm --rebuilddb
+	rpm --quiet --rebuilddb
 	echo "#######################################################################"
 	echo ""
-	echo "升级完毕！"
+	echo "升级完毕!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -323,7 +377,12 @@ updatekernel(){
 	echo "正在升级内核,请在全部脚本完成后重启系统"
 	echo ""
 	echo "#######################################################################"
-	yum --enablerepo=elrepo-kernel install kernel-ml -y
+	echo "请耐心等待!"
+
+	if [ `rpm -qa | grep kernel-ml |wc -l` -ne 1 ];then
+		yum --enablerepo=elrepo-kernel install kernel-ml -q -y
+	fi
+
 	egrep ^menuentry /etc/grub2.cfg | cut -f 2 -d \'
 	grub2-set-default 0
 	modprobe tcp_bbr
@@ -332,7 +391,7 @@ updatekernel(){
 	echo "tcp_bbr" > /etc/modules-load.d/modules.conf
 	echo "#######################################################################"
 	echo ""
-	echo "升级完毕！"
+	echo "升级完毕!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -344,8 +403,8 @@ changerootpasswd(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	read -p "是否需要更换root密码? (y/n) [默认=n]:" yx
-		case "$yx" in
+	read -p "是否需要更换root密码? (y/n) [默认=n]:" input
+		case "$input" in
 			y|Y)	
 				newrootpasswd=`randpasswd`
 				echo ""
@@ -358,7 +417,7 @@ changerootpasswd(){
 				echo "#######################################################################"
 				echo ""
 				echo -e "新root密码为	:\033[41;30m${newrootpasswd}\033[0m" 
-				echo "请妥善保存root密码！"
+				echo "请妥善保存root密码!"
 				echo ""
 				echo "#######################################################################"
 				echo ""
@@ -375,8 +434,8 @@ add_newuser(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	read -p "是否需要新增用户? (y/n) [默认=n]:" yz
-		case "$yz" in
+	read -p "是否需要新增用户? (y/n) [默认=n]:" input
+		case "$input" in
 			y|Y)
 				newusername=`randusername`
 				newuserpasswd=`randpasswd`
@@ -390,132 +449,182 @@ add_newuser(){
 				echo "${newuserpasswd}" | passwd --stdin ${newusername}
 				echo "#######################################################################"
 				echo ""
-				echo "请保存好用户名和密码！"
+				echo "请保存好用户名和密码!"
 				echo -e "Username:\033[41;30m${newusername}\033[0m" 
 				echo -e "Password:\033[41;30m${newuserpasswd}\033[0m" 
 				echo ""
 				echo "#######################################################################"
 				echo ""
-				;;
-			*)
 				any_key_to_continue
+				echo "#######################################################################"
+				echo ""
+				read -p "是否需要设置ssh? (y/n) [默认=n]:" input
+				case "$input" in
+					y|Y)
+						add_ssh
+						;;
+					*)
+						any_key_to_continue
+						;;
+				esac
+				;;
+			*)	
 				clear
 				echo "#######################################################################"
 				echo ""
-				echo "现有的普通账户为:"
-				getent passwd | grep home | awk -F: '{print $1}'
-				echo ""
-				echo "#######################################################################"
-				read -p "请输入需要设置ssh的普通账户:" setssh
-				newusername=${setssh}
-				;;
-		esac		
-
-	read -p "是否需要设置ssh? (y/n) [默认=n]:" yn
-	case "$yn" in
-		y|Y)
-			clear
-			echo "#######################################################################"
-			echo ""
-			echo "更换ssh端口为10010，禁用root登陆ssh，禁用密码认证，设置免密钥登陆"
-			echo ""
-			echo "#######################################################################"
-
-			if [ ! -f "/etc/firewalld/services/ssh.xml" ];then
-				cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
-			fi
-			
-			port=`cat /etc/firewalld/services/ssh.xml | grep port | awk '{print $3}' | cut -f 2 -d \"`
-
-			if [ "$port" != "10010" ];then
-				sed -i 's/22/10010/g' /etc/firewalld/services/ssh.xml
-				firewall-cmd --zone=public --add-port=10010/tcp --permanent
-				firewall-cmd --reload 
-			fi
-
-			if [ ! -f "/etc/ssh/sshd_config.bak" ];then
-				cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
-				echo "Port 10010" >>/etc/ssh/sshd_config
-				echo "PermitRootLogin no" >> /etc/ssh/sshd_config
-				echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
-				echo "PermitUserEnvironment no" >> /etc/ssh/sshd_config
-				echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
-				echo "IgnoreRhosts yes" >> /etc/ssh/sshd_config
-				echo "Protocol 2" >> /etc/ssh/sshd_config
-				sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
-			fi
-
-			if [ -d "/home/${newusername}/.ssh" ];then
-				rm -rf /home/${newusername}/.ssh
-			fi
-
-			su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
-			su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
-			su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
-			su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
-
-			while :
-			do
-				echo "#######################################################################"
-				echo ""
-				read -p "请输入管理该服务器的电脑的公钥（可以使用cat .ssh/id_rsa.pub查看）:" pub
-					echo ""
-					echo "#######################################################################"
-					if [ -z "${pub}" ]; then
-						echo "公钥不能为空"
-					else
-				 		su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
-				 		break
-				 	fi
-			done
-
-			systemctl restart sshd.service
-			echo "请使用该命令测试ssh是否正常: ssh -p 10010 ${newusername}@${IP}"
-			echo "#######################################################################"
-			read -p "请确认ssh是否正常? (y/n) [默认=y]:" yy
-				echo "#######################################################################"
-				case "$yy" in
-					n|N)
-						clear
+				read -p "是否需要设置ssh? (y/n) [默认=n]:" input
+				case "$input" in
+					y|Y)
 						echo "#######################################################################"
 						echo ""
-						echo "恢复ssh端口为22 ,允许root登陆，允许使用密码验证"
-						echo ""
-						echo "#######################################################################"
-						rm -rf /etc/ssh/sshd_config
-						mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
-						sed -i 's/10010/22/g' /etc/firewalld/services/ssh.xml
-						firewall-cmd --zone=public --remove-port=10010/tcp --permanent
-						firewall-cmd --reload
-						systemctl restart sshd
-						clear
-						echo "#######################################################################"
-						echo "请使用该命令测试ssh是否正常: ssh root@${IP}"
-						read -p "如果ssh不正常请退出脚本手动检查ssh配置,是否恢复正常? (y/n) [默认=y]:" zz
-						case "$zz" in
-							n|N)
-								exit
-								;;
-							*)
-								clear
-								echo "#######################################################################"
-								echo "请在脚本完成后手动设置ssh密钥登陆"
-								echo "#######################################################################"
-								echo ""
-								any_key_to_continue
-								;;
-						esac
+						echo "现有的普通账户为:"
+						getent passwd | grep home | awk -F: '{print $1}'						
+						while :
+						do
+							echo ""
+							echo "#######################################################################"
+							read -p "请输入需要设置ssh的普通账户:" input 
+							newusername=${input}
+							if [ -n "$newusername" ]; then
+								if [ `getent passwd | grep "$newusername" | wc -l` -eq 1 ]; then
+									add_ssh
+								else
+									echo "输入有误, 重新请输入!"
+									echo ""
+									echo "#######################################################################"
+									echo ""
+									echo "现有的普通账户为:"
+									getent passwd | grep home | awk -F: '{print $1}'
+									continue
+								fi
+							fi
+							break
+						done
 						;;
 					*)
+						any_key_to_continue
+						;;
+				esac
+				;;
+		esac			
+}
+
+add_ssh(){
+
+	clear
+	local d_listen_port=10010
+	local port=`cat /etc/ssh/sshd_config | grep -w "Port" | awk '{print $2}' | uniq`
+	local listen_port=
+	read -p "当前ssh端口为${port}，是否需要更换端口? (y/n) [默认=n]:" input
+	case "$input" in
+		y|Y)
+			echo "#######################################################################"
+			echo ""		
+			check_port
+			echo "#######################################################################"
+			echo ""
+			echo "更换ssh端口为${listen_port}，禁用root登陆ssh，禁用密码认证，设置免密钥登陆"
+			echo ""
+			echo "#######################################################################"
+			if [ ! -f "/etc/firewalld/services/ssh.xml" ]; then
+				cp /usr/lib/firewalld/services/ssh.xml /etc/firewalld/services/
+			fi
+
+			if [ "$port" != "$listen_port" ]; then
+				sed -i "s/$port/$listen_port/g" /etc/firewalld/services/ssh.xml
+				if [ ! -f "/etc/ssh/sshd_config.bak" ]; then
+					cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+					sed -i "s/Port $port/Port $listen_port/g" /etc/ssh/sshd_config
+					echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+					echo "PermitEmptyPasswords no" >> /etc/ssh/sshd_config
+					echo "PermitUserEnvironment no" >> /etc/ssh/sshd_config
+					echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config
+					echo "IgnoreRhosts yes" >> /etc/ssh/sshd_config
+					echo "Protocol 2" >> /etc/ssh/sshd_config
+					echo "Port ${listen_port}" >> /etc/ssh/sshd_config
+					sed -i 's/PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+				else
+					rm -rf /etc/ssh/sshd_config.bak
+					cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak
+					sed -i "s/Port $port/Port $listen_port/g" /etc/ssh/sshd_config
+					firewall-cmd --zone=public --remove-port=${port}/tcp --permanent --quiet
+					firewall-cmd --zone=public --remove-port=${port}/udp --permanent --quiet
+					firewall-cmd --reload
+				fi
+			fi
+			;;
+		*)
+			listen_port=$port
+			any_key_to_continue
+			;;
+	esac
+
+	while :
+	do
+		echo "#######################################################################"
+		echo ""
+		read -p "请输入管理该服务器的电脑的公钥（可以使用cat .ssh/id_rsa.pub查看）:" input
+			echo ""
+			echo "#######################################################################"
+			if [ -z "$input" ]; then
+				echo "公钥不能为空!"
+			else
+				if [ -f "/home/${newusername}/.ssh/authorized_keys" ]; then
+					su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
+				else
+					su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
+					su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
+					su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
+					su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
+					su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
+				fi
+		 		break
+		 	fi
+	done
+
+	systemctl restart sshd
+	echo "请使用该命令测试ssh是否正常: ssh -p ${listen_port} ${newusername}@${IP}"
+	echo "#######################################################################"
+	read -p "请确认ssh是否正常? (y/n) [默认=y]:" input
+		echo "#######################################################################"
+		case "$input" in
+			n|N)
+				clear
+				echo "#######################################################################"
+				echo ""
+				echo "恢复为原ssh配置"
+				echo ""
+				echo "#######################################################################"
+				rm -rf /etc/ssh/sshd_config
+				mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
+				sed -i "s/$listen_port/$port/g" /etc/firewalld/services/ssh.xml
+				firewall-cmd --zone=public --remove-port=${listen_port}/tcp --permanent --quiet
+				firewall-cmd --zone=public --remove-port=${listen_port}/udp --permanent --quiet
+				firewall-cmd --reload
+				systemctl restart sshd
+				clear
+				echo "#######################################################################"
+				echo "请使测试ssh是否恢复正常!"
+				read -p "如果ssh不正常请Ctrl + C退出脚本手动检查ssh配置,是否恢复正常? (y/n) [默认=y]:" input
+				case "$input" in
+					n|N)
+						exit
+						;;
+					*)
+						clear
+						echo "#######################################################################"
+						echo "请在脚本完成后手动设置ssh密钥登陆"
+						echo "#######################################################################"
 						echo ""
 						any_key_to_continue
 						;;
 				esac
-			;;
-		*)
-			any_key_to_continue
-			;;
-	esac
+				;;
+			*)
+				echo ""
+				any_key_to_continue
+				;;
+		esac
 }
 
 install_ckrootkit_rkhunter(){
@@ -528,49 +637,61 @@ install_ckrootkit_rkhunter(){
 	echo "#######################################################################"
 	echo ""
 	cd
-	yum install rkhunter -y
-	wget --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
-	if [ -a "chkrootkit.tar.gz" ];then	
-		tar zxf chkrootkit.tar.gz
-		cd chkrootkit-*
-		make clean
-		ldconfig
-		make sense
-		cd ..
-		mv -f chkrootkit-* chkrootkit
-		rm -rf /usr/local/chkrootkit
-		mv -f chkrootkit /usr/local/
-		chown -R root:root /usr/local/chkrootkit
-		chmod -R 700 /usr/local/chkrootkit
-		ln -s -f /usr/local/chkrootkit/chkrootkit /usr/local/bin/chkrootkit
+	if [ ! -f "/bin/rkhunter" ]; then
+		yum install rkhunter -q -y
 	fi
 
-	cat >> ~/.zshrc<<-EOF
-	export PATH="/usr/local/bin/:$PATH"
-	EOF
+	if [ ! -f "/usr/local/bin/chkrootkit" ]; then
+		wget -q --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
-	rkhunter --update
-	rkhunter --propupd
-	clear
-	echo "#######################################################################"
-	echo ""
-	echo "正在检测系统，请耐心等待!日志保存在chkrootkit.log和rkhunter.log"
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	rkhunter --check --sk | grep Warning
-	chkrootkit > chkrootkit.log
-	cat chkrootkit.log| grep INFECTED 
-	mv /var/log/rkhunter/rkhunter.log ./
-	cd
-	rm -rf chkrootkit*
-	echo "#######################################################################"
-	echo ""
-	echo "ckrootkit和rkhunter安装完毕."
-	echo ""
-	echo "#######################################################################"
-	echo ""
+		if [ -a "chkrootkit.tar.gz" ]; then	
+			tar zxf chkrootkit.tar.gz
+			cd chkrootkit-*
+			make clean
+			ldconfig
+			make sense
+			cd ..
+			mv -f chkrootkit-* chkrootkit
+			rm -rf /usr/local/chkrootkit
+			mv -f chkrootkit /usr/local/
+			chown -R root:root /usr/local/chkrootkit
+			chmod -R 700 /usr/local/chkrootkit
+			ln -s -f /usr/local/chkrootkit/chkrootkit /usr/local/bin/chkrootkit
+			rm -rf chkrootkit*
+		fi
+	fi
+
+	if [ -e "/usr/local/bin/chkrootkit" -a -e "/bin/rkhunter" ]; then
+		rkhunter --update
+		rkhunter --propupd
+		clear
+		echo "#######################################################################"
+		echo ""
+		echo "正在检测系统，请耐心等待!日志保存在chkrootkit.log和rkhunter.log"
+		echo ""
+		echo "#######################################################################"
+		echo ""
+		rkhunter --check --sk | grep Warning
+		chkrootkit > chkrootkit.log
+		cat chkrootkit.log| grep INFECTED 
+		mv /var/log/rkhunter/rkhunter.log ./
+		cd
+		echo "#######################################################################"
+		echo ""
+		echo "ckrootkit和rkhunter安装完毕."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	else
+		echo "#######################################################################"
+		echo ""
+		echo "ckrootkit安装失败，请稍后再试."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	fi
+
 	auto_continue
 }
 
@@ -584,9 +705,13 @@ install_aide(){
 	echo "#######################################################################"
 	echo ""
 	cd
-	yum install aide -y 
-	aide --init
-	cp -rf /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+
+	if [ ! -f "/bin/aide" ]; then
+		yum install aide -q -y 
+		aide --init
+		cp -rf /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
+	fi
+
 	aide --check
 	aide --update
 	echo "#######################################################################"
@@ -607,29 +732,33 @@ install_fail2ban(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	yum install fail2ban fail2ban-firewalld fail2ban-systemd -y
 
-	cat > /etc/fail2ban/jail.local<<-EOF
-	[DEFAULT]
-	banaction = firewallcmd-ipset
-	bantime  = 86400
-	findtime = 600
-	maxretry = 3
-	backend = systemd
-	ignoreip = 127.0.0.1/8 172.16.18.0/24 202.59.250.200 202.64.170.26 210.92.18.82 210.92.18.73
-	EOF
+	if [ ! -f "/bin/fail2ban-client" ]; then
+		yum install fail2ban fail2ban-firewalld fail2ban-systemd -q -y
+		cat > /etc/fail2ban/jail.local<<-EOF
+		[DEFAULT]
+		banaction = firewallcmd-ipset
+		bantime  = 86400
+		findtime = 600
+		maxretry = 3
+		backend = systemd
+		ignoreip = 127.0.0.1/8 172.16.18.0/24 202.59.250.200 202.64.170.26 210.92.18.82 210.92.18.73
+		EOF
 
-	cat > /etc/fail2ban/jail.d/sshd.local<<-EOF
-	[sshd]
-	enabled = true
-	port = 10010
-	logpath  = /var/log/secure
-	EOF
+		cat > /etc/fail2ban/jail.d/sshd.local<<-EOF
+		[sshd]
+		enabled = true
+		port = 10010
+		logpath  = /var/log/secure
+		EOF
 
-	systemctl enable firewalld
-	systemctl start firewalld
-	systemctl enable fail2ban
-	systemctl start fail2ban
+		systemctl enable firewalld
+		systemctl start firewalld
+		systemctl enable fail2ban
+		systemctl start fail2ban
+		systemctl -a | grep fail2ban
+	fi
+
 	fail2ban-client status
 	fail2ban-client status sshd
 	echo "#######################################################################"
@@ -650,22 +779,39 @@ install_lynis(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	git clone https://github.com/CISOfy/lynis
-	mv lynis /usr/local/
-	ln -s /usr/local/lynis/lynis /usr/local/bin/lynis
-	lynis update info
-	echo "#######################################################################"
-	echo ""
-	echo "正在检测系统，请耐心等待!日志保存在lynis.log"
-	echo ""
-	echo "#######################################################################"
-	lynis audit system | tee lynis.log
-	echo "#######################################################################"
-	echo ""
-	echo "lynis安装完成,日志保存在lynis.log."
-	echo ""
-	echo "#######################################################################"
-	echo ""
+	cd
+
+	if [ ! -f "/usr/local/bin/lynis" ]; then
+		git clone -q https://github.com/CISOfy/lynis
+
+		if [ -d "lynis" ]; then
+			mv lynis /usr/local/
+			ln -s /usr/local/lynis/lynis /usr/local/bin/lynis
+		fi
+	fi
+
+	if [ -f "/usr/local/bin/lynis" ]; then
+		lynis update info
+		echo "#######################################################################"
+		echo ""
+		echo "正在检测系统，请耐心等待!日志保存在lynis.log"
+		echo ""
+		echo "#######################################################################"
+		lynis audit system | tee lynis.log
+		echo "#######################################################################"
+		echo ""
+		echo "lynis安装完成,日志保存在lynis.log."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	else
+		echo "#######################################################################"
+		echo ""
+		echo "lynis安装失败，请稍后再试."
+		echo ""
+		echo "#######################################################################"
+	fi
+
 	auto_continue
 }
 
@@ -674,204 +820,255 @@ install_zsh(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装zsh"
+	echo "开始安装zsh,请耐心等待!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
 	cd
-	yum install zsh -y
 
-	if [ -d "$ZSH" ]; then
-		upgrade_oh_my_zsh
+	if [ ! -f "/bin/zsh" ];then
+		yum install zsh -q -y
 	fi
 
-	if [ ! -n "$ZSH" ]; then
-		ZSH=~/.oh-my-zsh
+	if [ -d "/root/.oh-my-zsh" ]; then
+		echo "#######################################################################"
+		echo ""
+		echo "zsh已安装，请使用upgrade_oh_my_zsh升级zsh!"
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	else
 		umask g-w,o-w
-		env git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git $ZSH
+		env git clone -q --depth=1 https://github.com/robbyrussell/oh-my-zsh.git /root/.oh-my-zsh
 
-		if [ -f ~/.zshrc ] || [ -h ~/.zshrc ]; then
-			mv ~/.zshrc ~/.zshrc.pre-oh-my-zsh
-		fi
-
-		cp $ZSH/templates/zshrc.zsh-template ~/.zshrc
-		sed "/^export ZSH=/ c\\
-		export ZSH=$ZSH
-		" ~/.zshrc > ~/.zshrc-omztemp
-		mv -f ~/.zshrc-omztemp ~/.zshrc
-		cd /root/.oh-my-zsh/themes
-		git clone https://github.com/dracula/zsh.git
-		mv zsh/dracula.zsh-theme .
-		rm -rf zsh
-		sed -i 's/robbyrussell/dracula/g' ~/.zshrc
-		sed -i 's/plugins=(git)/plugins=(sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search)/g' ~/.zshrc
-		cd /root/.oh-my-zsh/plugins
-		git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
-		git clone https://github.com/zsh-users/zsh-autosuggestions.git
-		git clone https://github.com/zsh-users/zsh-history-substring-search.git
-
-		cat >> /root/.zshrc<<-EOF
-		export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-		alias vizsh="vim ~/.zshrc"
-		alias sourcezsh="source ~/.zshrc"
-		EOF
-
-		source /root/.zshrc
-		TEST_CURRENT_SHELL=$(expr "$SHELL" : '.*/\(.*\)')
-
-		if [ "$TEST_CURRENT_SHELL" != "zsh" ]; then
-			if hash chsh >/dev/null 2>&1; then
-				clear
-				cd
-				chsh -s /bin/zsh root
-				echo "#######################################################################"
-				echo ""
-				echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!"
-				echo "千万不要按Ctrl + C退出脚本!!!"
-				echo ""
-				echo "#######################################################################"
-			else
-				echo "请手动修改默认shell为zsh!"
+		if [ -d "/root/.oh-my-zsh" ]; then
+			if [ -f ~/.zshrc ] || [ -h ~/.zshrc ]; then
+				mv ~/.zshrc ~/.zshrc.pre-oh-my-zsh
 			fi
+
+			cp /root/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
+			sed "/^export ZSH=/ c\\
+			export ZSH=/root/.oh-my-zsh
+			" ~/.zshrc > ~/.zshrc-omztemp
+			mv -f ~/.zshrc-omztemp ~/.zshrc
+			cd /root/.oh-my-zsh/themes
+			git clone -q https://github.com/dracula/zsh.git
+			mv zsh/dracula.zsh-theme .
+			rm -rf zsh
+			sed -i 's/robbyrussell/dracula/g' ~/.zshrc
+			sed -i 's/plugins=(git)/plugins=(sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search)/g' ~/.zshrc
+			cd /root/.oh-my-zsh/plugins
+			git clone -q https://github.com/zsh-users/zsh-syntax-highlighting.git
+			git clone -q https://github.com/zsh-users/zsh-autosuggestions.git
+			git clone -q https://github.com/zsh-users/zsh-history-substring-search.git
+
+			cat >> /root/.zshrc<<-EOF
+			export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+			alias vizsh="vim ~/.zshrc"
+			alias sourcezsh="source ~/.zshrc"
+			EOF
+
+			TEST_CURRENT_SHELL=$(expr "$SHELL" : '.*/\(.*\)')
+
+			if [ "$TEST_CURRENT_SHELL" != "zsh" ]; then
+				if hash chsh >/dev/null 2>&1; then
+					clear
+					cd
+					chsh -s /bin/zsh root
+					echo "#######################################################################"
+					echo ""
+					echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!"
+					echo "千万不要按Ctrl + C退出脚本!!!"
+					echo ""
+					echo "#######################################################################"
+				else
+					echo "请手动修改默认shell为zsh!"
+				fi
+			fi
+
+			env zsh
+			echo "#######################################################################"
+			echo ""
+			echo "Zsh安装完毕，脚本完成后使用env zsh手动切换shell为zsh."
+			echo ""
+			echo "#######################################################################"
+			echo ""
+		else
+			echo "#######################################################################"
+			echo ""
+			echo "zsh安装失败，请稍后再试."
+			echo ""
+			echo "#######################################################################"
 		fi
 	fi
 
-  	env zsh
-	echo "#######################################################################"
-	echo ""
-	echo "Zsh安装完毕，脚本完成后使用env zsh手动切换shell为zsh."
-	echo ""
-	echo "#######################################################################"
-	echo ""
 	auto_continue
 }
 
 install_shadowsocks(){
 
 	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装Shadowsocks，请耐心等待!"
+	echo ""
+	echo "#######################################################################"
+	echo ""
 	sspasswd=`randpasswd`
-	echo "#######################################################################"
-	echo ""
-	echo "开始安装Shadowsocks"
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	pip install greenlet
-	pip install gevent
-	firewall-cmd --zone=public --add-port=999/tcp --permanent
-	firewall-cmd --zone=public --add-port=999/udp --permanent
-	firewall-cmd --reload
-	firewall-cmd --list-ports
-	systemctl restart firewalld.service
-	systemctl -a | grep firewalld
+	local listen_port=999
+	pip install greenlet -q
+	pip install gevent -q
+	read -p "默认设置ss端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
+	case "$input" in
+		y|Y)
+			echo "#######################################################################"
+			echo ""		
+			check_port
+			echo "#######################################################################"
+			echo ""
+			echo "更换默认端口为${listen_port}."
+			echo ""
+			echo "#######################################################################"
+			;;
+		*)
+			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then 
+				firewall-cmd --zone=public --add-port=${listen_port}/tcp --permanent
+				firewall-cmd --zone=public --add-port=${listen_port}/udp --permanent
+				firewall-cmd --reload
+			fi
+			;;
+	esac
+
 	cd
 	git clone https://github.com/shadowsocks/shadowsocks-libev.git
-	cd shadowsocks-libev
-	git submodule update --init --recursive
-	./autogen.sh
-	./configure --with-sodium-include=/usr/local/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
-	make && make install
-	cd
-	rm -rf shadowsocks-libev
 
-	if [ ! -d "/etc/shadowsocks-libev/"];then
-		mkdir /etc/shadowsocks-libev/
+	if [ -d "/root/shadowsocks-libev" ]; then
+		cd shadowsocks-libev
+		git submodule update --init --recursive
+		./autogen.sh
+		./configure --with-sodium-include=/usr/local/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
+		make && make install
+		cd
+		rm -rf shadowsocks-libev
+
+		if [ ! -d "/etc/shadowsocks-libev/" ]; then
+			mkdir /etc/shadowsocks-libev/
+		fi
+
+		cat > /etc/shadowsocks-libev/config.json<<-EOF
+		{
+		    "server":"0.0.0.0",
+		    "server_port":"${listen_port}",
+		    "local_port":1080,
+		    "local_address":"127.0.0.1",
+		    "password":"${sspasswd}",
+		    "nameserver": "8.8.8.8",
+		    "timeout":"600",
+		    "method":"aes-256-cfb"
+		}
+		EOF
+
+		cat > /etc/sysconfig/shadowsocks-libev<<-EOF
+		START=yes
+		CONFFILE="/etc/shadowsocks-libev/config.json"
+		DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port -d 8.8.8.8"
+		USER=root
+		GROUP=root
+		MAXFD=32768
+		EOF
+
+		cat > /usr/lib/systemd/system/shadowsocks-libev.service<<-EOF
+		[Unit]
+		Description=Shadowsocks-libev Default Server Service
+		After=network.target
+
+		[Service]
+		Type=simple
+		PIDFile=/var/run/shadowsocks.pid
+		EnvironmentFile=/etc/sysconfig/shadowsocks-libev
+		User=root
+		Group=root
+		LimitNOFILE=32768
+		ExecStart=/usr/local/bin/ss-server -a \$USER -c \$CONFFILE \$DAEMON_ARGS
+
+		[Install]
+		WantedBy=multi-user.target
+		EOF
+
+		cat > /etc/shadowsocks-libev/local.acl<<-EOF
+		[white_list]
+		127.0.0.1
+		::1
+		10.0.0.0/8
+		172.16.0.0/12
+		192.168.0.0/16
+		120.41.0.0/16
+		EOF
+		
+		systemctl daemon-reload
+		systemctl start shadowsocks-libev.service
+		systemctl enable shadowsocks-libev.service
+		systemctl -a | grep shadowsocks
+		echo "#######################################################################"
+		echo ""
+		echo "Shadowsocks安装完毕."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+		echo "Shadowsocks的相关配置:"
+		echo -e "Server IP:\033[41;30m${IP}\033[0m"
+		echo -e "Port:\033[41;30m${listen_port}\033[0m"
+		echo -e "Password:\033[41;30m${sspasswd}\033[0m"
+		echo -e "Encryption:\033[41;30maes-256-cfb\033[0m"
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	else 
+		echo "#######################################################################"
+		echo ""
+		echo "Shadowsocks安装失败，请稍后再试."
+		echo ""
+		echo "#######################################################################"
 	fi
 
-	cat > /etc/shadowsocks-libev/config.json<<-EOF
-	{
-	    "server":"${IP}",
-	    "server_port":999,
-	    "local_port":1080,
-	    "password":"${sspasswd}",
-	    "timeout":600,
-	    "method":"aes-256-cfb"
-	}
-	EOF
-
-	cat > /etc/sysconfig/shadowsocks-libev<<-EOF
-	START=yes
-	CONFFILE="/etc/shadowsocks-libev/config.json"
-	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port"
-	USER=root
-	GROUP=root
-	MAXFD=32768
-	EOF
-
-	cat > /usr/lib/systemd/system/shadowsocks-libev.service<<-EOF
-	[Unit]
-	Description=Shadowsocks-libev Default Server Service
-	After=network.target
-
-	[Service]
-	Type=simple
-	PIDFile=/var/run/shadowsocks.pid
-	EnvironmentFile=/etc/sysconfig/shadowsocks-libev
-	User=root
-	Group=root
-	LimitNOFILE=32768
-	ExecStart=/usr/local/bin/ss-server -a \$USER -c \$CONFFILE \$DAEMON_ARGS
-
-	[Install]
-	WantedBy=multi-user.target
-	EOF
-
-	cat > /etc/shadowsocks-libev/local.acl<<-EOF
-	[white_list]
-	127.0.0.1
-	::1
-	10.0.0.0/8
-	172.16.0.0/12
-	192.168.0.0/16
-	120.41.0.0/16
-	EOF
-	
-	systemctl daemon-reload
-	systemctl start shadowsocks-libev.service
-	systemctl enable shadowsocks-libev.service
-	systemctl -a | grep shadowsocks-libev
-	echo "#######################################################################"
-	echo ""
-	echo "Shadowsocks安装完毕."
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	echo "Shadowsocks的相关配置:"
-	echo -e "Server IP:\033[41;30m${IP}\033[0m"
-	echo -e "Port:\033[41;30m999\033[0m"
-	echo -e "Password:\033[41;30m${sspasswd}\033[0m"
-	echo -e "Encryption:\033[41;30maes-256-cfb\033[0m"
-	echo ""
-	echo "#######################################################################"
-	echo ""
 	any_key_to_continue
 }
 
 install_pptp(){
 
 	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始配置PPTP VPN:"
+	echo ""
+	echo "#######################################################################"
 	pptpuser=`randusername`
 	pptppasswd=`randpasswd`
-	yum install pptpd -y
+	yum install pptpd -q -y
 	echo "localip 10.10.0.1" >> /etc/pptpd.conf
 	echo "remoteip 10.10.0.100-199" >> /etc/pptpd.conf
 	echo "ms-dns 8.8.8.8" >> /etc/ppp/options.pptpd
 	echo "ms-dns 8.8.4.4" >> /etc/ppp/options.pptpd
 	echo "${pptpuser} pptpd ${pptppasswd} *" >> /etc/ppp/chap-secrets
 
-	cat >/etc/firewalld/services/pptp.xml<<-EOF
+	cat > /etc/firewalld/services/pptp.xml<<-EOF
 	<?xml version="1.0" encoding="utf-8"?>
 	<service>
 	  <port protocol="tcp" port="1723"/>
 	</service>
 	EOF
 
-	firewall-cmd --reload
-	firewall-cmd --permanent --zone=public --add-service=pptp
-	firewall-cmd --permanent --zone=public --add-masquerade
+	firewall-cmd --quiet --permanent --zone=public --add-service=pptp
+	local str=`firewall-cmd --list-all | grep masquerade | awk '{print $2}'`
+
+	if [ "${str}" != "yes" ]; then
+		firewall-cmd --quiet --permanent --zone=public --add-masquerade 
+	fi
+
 	firewall-cmd --reload
 	systemctl start pptpd.service
 	systemctl enable pptpd.service
+	systemctl -a | grep pptpd
 	echo "#######################################################################"
 	echo ""
 	echo "PPTP VPN安装完毕."
@@ -889,15 +1086,15 @@ install_pptp(){
 install_l2tp(){
 
 	clear
-	username=`randusername`
-	password=`randpasswd`
-	mypsk=`randpsk`
 	echo "#######################################################################"
 	echo ""
 	echo "开始配置L2TP VPN:"
 	echo ""
 	echo "#######################################################################"
 	echo ""
+	username=`randusername`
+	password=`randpasswd`
+	mypsk=`randpsk`
 	echo "请设置VPN客户端IP段:"
 	read -p "(默认IP:172.16.18):" iprange
 	[ -z ${iprange} ] && iprange="172.16.18"
@@ -915,7 +1112,7 @@ install_l2tp(){
 	[ ! -z ${tmppassword} ] && password=${tmppassword}
 
 	echo ""
-	echo "请保存好L2TP VPN的用户名密码密钥！"
+	echo "请保存好L2TP VPN的用户名密码密钥!"
 	echo -e "Server IP:\033[41;30m${IP}\033[0m"
 	echo "VPN Gateway IP:${iprange}.1"
 	echo "VPN Client IP:${iprange}.2-${iprange}.254"
@@ -925,12 +1122,14 @@ install_l2tp(){
 	echo "#######################################################################"
 	echo ""
 	any_key_to_continue
-	yum install libreswan xl2tpd -y
+	yum install libreswan xl2tpd -q -y
 	sysctl -p
 	systemctl start ipsec
 	systemctl start xl2tpd	
 	systemctl enable ipsec
 	systemctl enable xl2tpd
+	systemctl -a | grep ipsec
+	systemctl -a | grep xl2tpd
 
 	cat > /etc/firewalld/services/xl2tpd.xml<<-EOF
 	<?xml version="1.0" encoding="utf-8"?>
@@ -1017,19 +1216,24 @@ install_l2tp(){
 	EOF
 
 	echo "${username} l2tpd ${password} *" >> /etc/ppp/chap-secrets
-	firewall-cmd --reload
-	firewall-cmd --permanent --add-service=ipsec
-	firewall-cmd --permanent --add-service=xl2tpd
-	firewall-cmd --permanent --add-masquerade
+	firewall-cmd --quiet --permanent --add-service=ipsec
+	firewall-cmd --quiet --permanent --add-service=xl2tpd
+	local str=`firewall-cmd --list-all | grep masquerade | awk '{print $2}'`
+
+	if [ "${str}" != "yes" ]; then
+		firewall-cmd --quiet --permanent --zone=public --add-masquerade
+	fi
+
 	firewall-cmd --reload
 	systemctl restart ipsec
 	systemctl restart xl2tpd
 	systemctl -a | grep ipsec
 	systemctl -a | grep xl2tpd
 	cd
-	wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
+	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
 	chmod +x l2tp_bin.sh
 	./l2tp_bin.sh
+	rm -rf l2tp_bin.sh
 	sleep 3
 	ipsec verify
 	echo ""
@@ -1054,206 +1258,72 @@ install_l2tp(){
 
 install_v2ray(){
 
-	UUID=$(cat /proc/sys/kernel/random/uuid)
-
-	v2ray_install_component(){
-
-		local COMPONENT=$1
-		COMPONENT_CMD=$(command -v $COMPONENT)
-
-		if [ -n "${COMPONENT_CMD}" ]; then
-			return
-		fi
-
-		if [ ${SOFTWARE_UPDATED} -eq 1 ]; then
-			return
-		fi
-
-		if [ -n "${YUM_CMD}" ]; then
-			${YUM_CMD} -q makecache
-		fi
-
-		SOFTWARE_UPDATED=1
-
-		if [ -n "${YUM_CMD}" ]; then
-			${YUM_CMD} -y -q install $COMPONENT
-		fi
-	}
-
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装V2Ray..."
+	echo "开始安装v2ray，请耐心等待!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	YUM_CMD=$(command -v yum)
-	SOFTWARE_UPDATED=0
-	V2RAY_RUNNING=0
-
-	if pgrep "v2ray" > /dev/null ; then
-		V2RAY_RUNNING=1
-	fi
-
-	VER="$(curl -s https://api.github.com/repos/v2ray/v2ray-core/releases/latest | grep 'tag_name' | cut -d\" -f4)"
-	ARCH=$(uname -m)
-	VDIS="64"
-
-	if [[ "$ARCH" == "i686" ]] || [[ "$ARCH" == "i386" ]]; then
-		VDIS="32"
-	elif [[ "$ARCH" == *"armv7"* ]] || [[ "$ARCH" == "armv6l" ]]; then
-		VDIS="arm"
-	elif [[ "$ARCH" == *"armv8"* ]]; then
-		VDIS="arm64"
-	fi
-
+	local d_listen_port=8888
+	local v2ray_status=0
+	local ver=`curl -s https://api.github.com/repos/v2ray/v2ray-core/releases/latest --connect-timeout 10| grep 'tag_name' | cut -d\" -f4`
+	local UUID=$(cat /proc/sys/kernel/random/uuid)
 	rm -rf /tmp/v2ray
 	mkdir -p /tmp/v2ray
-	DOWNLOAD_LINK="https://github.com/v2ray/v2ray-core/releases/download/${VER}/v2ray-linux-${VDIS}.zip"
-	v2ray_install_component "curl"
-	curl -L -H "Cache-Control: no-cache" -o "/tmp/v2ray/v2ray.zip" ${DOWNLOAD_LINK}
-	v2ray_install_component "unzip"
-	unzip "/tmp/v2ray/v2ray.zip" -d "/tmp/v2ray/"
-	mkdir -p /var/log/v2ray
-	SYSTEMCTL_CMD=$(command -v systemctl)
-	mkdir -p /usr/bin/v2ray
-	cp "/tmp/v2ray/v2ray-${VER}-linux-${VDIS}/v2ray" "/usr/bin/v2ray/v2ray"
-	chmod +x "/usr/bin/v2ray/v2ray"
-	firewall-cmd --permanent --zone=public --add-port=8888/tcp
-	firewall-cmd --permanent --zone=public --add-port=8888/udp
-	firewall-cmd --permanent --zone=public --add-port=8889/tcp
-	firewall-cmd --permanent --zone=public --add-port=8889/udp
-	firewall-cmd --reload
-	mkdir -p /etc/v2ray
+	curl -s -L -H "Cache-Control: no-cache" -o /tmp/v2ray/v2ray.zip https://github.com/v2ray/v2ray-core/releases/download/${ver}/v2ray-linux-64.zip
 
-	if [ ! -f "/etc/v2ray/config.json" ]; then
-		cp "/tmp/v2ray/v2ray-${VER}-linux-${VDIS}/vpoint_vmess_freedom.json" "/etc/v2ray/config.json"
-		v2raysspw=`randusername`
+	if [ -f "/tmp/v2ray/v2ray.zip" ]; then
+		unzip -qo /tmp/v2ray/v2ray.zip -d /tmp/v2ray/
+		rm -rf /usr/bin/v2ray /etc/v2ray/ /var/log/v2ray
+		mkdir -p /usr/bin/v2ray /etc/v2ray /var/log/v2ray
+		cd /tmp/v2ray/v2ray-${ver}-linux-64/
+		mv -f geoip.dat geosite.dat v2ray v2ctl /usr/bin/v2ray/
+		chmod +x /usr/bin/v2ray/v2ray /usr/bin/v2ray/v2ctl
+		mv -f "/tmp/v2ray/v2ray-${ver}-linux-64/vpoint_vmess_freedom.json" "/etc/v2ray/config.json"
+		read -p "默认设置vmess端口为${d_listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
+		case "$input" in
+			y|Y)
+				echo "#######################################################################"
+				echo ""       
+				check_port
+				echo "#######################################################################"
+				echo ""
+				echo "更换默认vmess端口为${listen_port}."
+				echo ""
+				echo "#######################################################################"
+				d_listen_port="$listen_port"
+				;;
+			*)
+				;;
+		esac
 
-	cat > /etc/v2ray/config.json<<-EOF
-	{
-	  "log" :
-	  {
-	    "access": "/var/log/v2ray/access.log",
-	    "error": "/var/log/v2ray/error.log",
-	    "loglevel": "warning"
-	  },
-
-	  "inbound": {
-	  "address": "${IP}",
-	    "port": 8888,
-	    "protocol": "vmess",
-	    "settings": {
-	      "clients": [
-	          {
-	            "id": "${UUID}",
-	            "level": 1,
-	            "alterId": 100
-	          }
-	      ]
-	     },
-	    "streamSettings": {
-	    "network": "tcp"
-	    }
-	  },
-
-	"outbound": {
-	    "protocol": "freedom",
-	    "settings": {}
-	},
-
-	"inboundDetour": [
-	    {
-	      "protocol": "shadowsocks",
-	      "port": 8889,
-	      "settings": {
-	        "method": "aes-256-cfb",
-	        "password": "${v2raysspw}",
-	        "udp": true
-	      }
-	    }
-	],
-
-	"outboundDetour": [
-	    {
-	      "protocol": "blackhole",
-	      "settings": {},
-	      "tag": "blocked"
-	    }
-	],
-
-	"routing": {
-	    "strategy": "rules",
-	    "settings": {
-	      "rules": [
-	        {
-	          "type": "field",
-	          "ip": [
-	            "0.0.0.0/8",
-	            "10.0.0.0/8",
-	            "100.64.0.0/10",
-	            "127.0.0.0/8",
-	            "169.254.0.0/16",
-	            "172.16.0.0/12",
-	            "192.0.0.0/24",
-	            "192.0.2.0/24",
-	            "192.168.0.0/16",
-	            "198.18.0.0/15",
-	            "198.51.100.0/24",
-	            "203.0.113.0/24",
-	            "::1/128",
-	            "fc00::/7",
-	            "fe80::/10"
-	          ],
-	          "outboundTag": "blocked"
-	        }
-	      ]
-	    }
-	},
-
-	"transport": {
-	  "tcpSettings": {
-	    "connectionReuse": true
-	  },
-	  "kcpSettings": {
-	    "mtu": 1300,
-	    "tti": 20,
-	    "uplinkCapacity": 20,
-	    "downlinkCapacity": 100,
-	    "congestion": false,
-	    "readBufferSize": 1,
-	    "writeBufferSize": 1,
-	    "header": {
-	      "type": "utp"
-	    }
-	  }
-	}
-	}
-	EOF
+		sed -i "s/10086/${d_listen_port}/g" "/etc/v2ray/config.json"
+		sed -i "s/23ad6b10-8d1a-40f7-8ad0-e3e35cd38297/${UUID}/g" "/etc/v2ray/config.json"
+		mv -f "/tmp/v2ray/v2ray-${ver}-linux-64/systemd/v2ray.service" "/usr/lib/systemd/system/"
+		systemctl daemon-reload
+		systemctl enable v2ray.service
+		systemctl start v2ray
+		rm -rf /tmp/v2ray
+		systemctl -a | grep v2ray
+		echo "#######################################################################"
+		echo ""
+		echo "V2Ray安装完毕."
+		echo ""
+		echo "V2Ray的相关配置:"
+		echo -e "Server IP:\033[41;30m${IP}\033[0m"
+		echo -e "UUID:\033[41;30m${UUID}\033[0m"
+		echo -e "V2Ray Port:\033[41;30m${d_listen_port}\033[0m"
+		echo "#######################################################################"
+		echo ""
+	else
+		echo "#######################################################################"
+		echo ""
+		echo "V2Ray安装失败，请稍后再试."
+		echo ""
+		echo "#######################################################################"
 	fi
 
-	if [ -n "${SYSTEMCTL_CMD}" ]; then
-		if [ ! -f "/lib/systemd/system/v2ray.service" ]; then
-			cp "/tmp/v2ray/v2ray-${VER}-linux-${VDIS}/systemd/v2ray.service" "/lib/systemd/system/"
-			systemctl enable v2ray
-			systemctl start v2ray
-			systemctl -a | grep v2ray
-		fi
-	fi
-
-	echo "#######################################################################"
-	echo ""
-	echo "V2Ray安装完毕."
-	echo ""
-	echo "V2Ray的相关配置:"
-	echo -e "Server IP:\033[41;30m${IP}\033[0m"
-	echo -e "UUID:\033[41;30m${UUID}\033[0m"
-	echo -e "V2Ray Port:\033[41;30m8888\033[0m"
-	echo -e "V2Ray SS Port:\033[41;30m8889\033[0m"
-	echo -e "V2Ray SS Encryption:\033[41;30maes-256-cfb\033[0m"
-	echo -e "V2Ray SS Password:\033[41;30m${v2raysspw}\033[0m"
-	echo "#######################################################################"
-	echo ""
 	any_key_to_continue
 }
 
@@ -1266,57 +1336,6 @@ install_supervisor(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	
-	SUPERVISOR_SYSTEMD_FILE_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/supervisord.systemd"
-
-	download_file(){
-
-		local url="$1"
-		local file="$2"
-		local verify="$3"
-		local retry=0
-		local verify_cmd=
-		download_file_to_path
-	}
-
-	download_file_to_path(){
-
-		if verify_file; then
-			return 0
-		fi
-
-		if [ $retry -ge 3 ]; then
-			rm -f "$file"
-
-			cat >&2 <<-EOF
-			文件下载或校验失败! 请重试。
-			URL: ${url}
-			EOF
-
-			if [ -n "$verify_cmd" ]; then
-
-				cat >&2 <<-EOF
-				如果下载多次失败，你可以手动下载文件:
-				1. 下载文件 ${url}
-				2. 将文件重命名为 $(basename "$file")
-				3. 上传文件至目录 $(dirname "$file")
-				4. 重新运行安装脚本
-
-				注: 文件目录 . 表示当前目录，.. 表示当前目录的上级目录
-				EOF
-
-			fi
-			any_key_to_continue
-			mainmenu
-		fi
-
-			( set -x; wget  --tries=3 -O "$file" --no-check-certificate "$url" )
-
-		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
-			retry=$(expr $retry + 1)
-			download_file_to_path
-		fi
-	}
 
 	verify_file(){
 
@@ -1345,6 +1364,42 @@ install_supervisor(){
 		fi
 
 		return 1
+	}
+
+	download_file(){
+
+		local url="$1"
+		local file="$2"
+		local verify="$3"
+		local retry=0
+		local verify_cmd=
+		download_file_to_path
+	}
+
+	download_file_to_path(){
+
+		if verify_file; then
+			return 0
+		fi
+
+		if [ $retry -ge 3 ]; then
+			rm -f "$file"
+
+			cat >&2 <<-EOF
+			文件下载或校验失败! 请重试。
+			URL: ${url}
+			EOF
+
+			any_key_to_continue
+			mainmenu
+		fi
+
+			( set -x; wget -q  --tries=3 -O "$file" --no-check-certificate "$url" )
+
+		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
+			retry=$(expr $retry + 1)
+			download_file_to_path
+		fi
 	}
 
 	config_install_supervisor(){
@@ -1419,7 +1474,7 @@ install_supervisor(){
 
 		if command_exists systemctl; then
 			supervisor_startup_file='/lib/systemd/system/supervisord.service'
-			supervisor_startup_file_url="$SUPERVISOR_SYSTEMD_FILE_URL"
+			supervisor_startup_file_url="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/supervisord.systemd"
 			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
 			(
 				set -x
@@ -1428,7 +1483,7 @@ install_supervisor(){
 		fi
 	}
 
-	if [ -s "/etc/supervisord.conf" ] && command_exists supervisord; then
+	if [ -z "/etc/supervisord.conf" ] && command_exists supervisord; then
 
 		cat >&2 <<-EOF
 		检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
@@ -1437,81 +1492,39 @@ install_supervisor(){
 		通过本脚本安装的 Supervisor 配置文件路径为: /etc/supervisor/supervisord.conf
 		你可以使用以下命令来备份原有配置文件:
 
-		    mv /etc/supervisord.conf /etc/supervisord.conf.bak
+		mv /etc/supervisord.conf /etc/supervisord.conf.bak
 		EOF
 
 		any_key_to_continue
 		mainmenu
 	fi
 
-	if [ -s "/etc/supervisor/supervisord.conf" ]&& command_exists supervisord;then
+	if [ -n "/etc/supervisor/supervisord.conf" ]; then
+		easy_install -U supervisor
 		config_install_supervisor
 		download_startup_file
-		systemctl start supervisord.service
-		supervisorctl update
-		supervisorctl reread
-		supervisorctl status
-	else
-		if ! command_exists easy_install; then
-
-			cat >&2 <<-EOF
-			未找到已安装的 easy_install 命令，
-			请先手动安装 python-setuptools
-			然后重新运行安装脚本。
-			EOF
-
-			any_key_to_continue
-			mainmenu
-		fi
-
-		if ! ( easy_install --help >/dev/null 2>&1 ); then
-
-			cat >&2 <<-EOF
-			检测到你的 easy_install 已损坏，
-			通常是由于你自己升级过 python 版本，
-			但是没有将 easy_install 链接到新的地址。
-			需要手动做一个软链接
-			 * ln -s /usr/local/python2.7/bin/easy_install /usr/bin/easy_install
-
-			 "/usr/local/python2.7" 应该为你新版本 python 的路径
-			EOF
-
-			any_key_to_continue
-			mainmenu
-		fi
-
-		(
-			set -x
-			easy_install -U supervisor
-		)
-
-		if [ "$?" != "0" ]; then
-
-			cat >&2 <<-EOF
-			错误: 安装 Supervisor 失败，
-			请尝试使用
-			  easy_install -U supervisor
-			来手动安装。
-			EOF
-
-			any_key_to_continue
-			mainmenu
-		fi
-
-		config_install_supervisor
-		download_startup_file
-		systemctl start supervisord.service
-		supervisorctl update
-		supervisorctl reread
-		supervisorctl status
 	fi
 
-	echo "#######################################################################"
-	echo ""
-	echo "Supervisor安装完毕."
-	echo ""
-	echo "#######################################################################"
-	echo ""
+	if command_exists supervisord; then
+		systemctl start supervisord.service
+		supervisorctl update
+		supervisorctl reread
+		supervisorctl status
+		echo "#######################################################################"
+		echo ""
+		echo "Supervisor安装完毕."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	else
+		echo "#######################################################################"
+		echo ""
+		echo "Supervisor安装失败，请稍后再试.."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	fi
+
 	auto_continue
 }
 
@@ -1524,9 +1537,12 @@ install_vlmcsd(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	firewall-cmd --zone=public --add-port=1688/tcp --permanent
-	firewall-cmd --zone=public --add-port=1688/udp --permanent
-	firewall-cmd --reload
+
+	if [ `firewall-cmd --list-ports | grep 1688 | wc -l` -ne 1 ]; then
+		firewall-cmd --zone=public --add-port=1688/tcp --permanent
+		firewall-cmd --zone=public --add-port=1688/udp --permanent
+		firewall-cmd --reload
+	fi
 
 	if [ -s "/etc/init.d/vlmcsd" ]; then
 		/etc/init.d/vlmcsd stop
@@ -1538,9 +1554,9 @@ install_vlmcsd(){
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
-	wget --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
+	wget -q --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
 	chmod 0755 /usr/local/bin/vlmcsd
-	wget --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
+	wget -q --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
 
 	cat > /usr/lib/systemd/system/vlmcsd.service<<-EOF
@@ -1563,7 +1579,7 @@ install_vlmcsd(){
 	systemctl daemon-reload
 	systemctl enable vlmcsd.service
 	systemctl start vlmcsd.service
-	systemctl -a |grep vlmcsd
+	systemctl -a | grep vlmcsd
 	echo "#######################################################################"
 	echo ""
 	echo "Vlmcsd安装完毕."
@@ -1575,49 +1591,22 @@ install_vlmcsd(){
 
 install_kcptun(){
 
-	SHELL_VERSION=20
-	CONFIG_VERSION=6
-	INIT_VERSION=3
-	KCPTUN_INSTALL_DIR='/usr/local/kcptun'
-	KCPTUN_LOG_DIR='/var/log/kcptun'
-	KCPTUN_RELEASES_URL='https://api.github.com/repos/xtaci/kcptun/releases'
-	KCPTUN_LATEST_RELEASE_URL="${KCPTUN_RELEASES_URL}/latest"
-	KCPTUN_TAGS_URL='https://github.com/xtaci/kcptun/tags'
-	SHELL_VERSION_INFO_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/version.json"
-	JQ_LINUX64_URL="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/jq-linux64"
-	JQ_LINUX64_HASH='d8e36831c3c94bb58be34dd544f44a6c6cb88568'
-	JQ_BIN="${KCPTUN_INSTALL_DIR}/bin/jq"	
-	D_LISTEN_PORT=800
-	D_TARGET_ADDR=${IP}
-	D_TARGET_PORT=999
-	D_KEY=`randpasswd`
-	D_CRYPT='salsa20'
-	D_MODE='fast3'
-	D_MTU=1300
-	D_SNDWND=2048
-	D_RCVWND=2048
-	D_DATASHARD=10
-	D_PARITYSHARD=3
-	D_DSCP=0
-	D_NOCOMP='false'
-	D_SNMPPERIOD=60
-	D_PPROF='false'
-	D_ACKNODELAY='false'
-	D_NODELAY=1
-	D_INTERVAL=20
-	D_RESEND=2
-	D_NC=1
-	D_SOCKBUF=4194304
-	D_KEEPALIVE=10
-	current_instance_id=
-	run_user='kcptun'
+	local install_dir='/usr/local/kcptun'
+	local log_dir='/var/log/kcptun'
+	local jq_bin="${install_dir}/bin/jq"	
+	local d_key=`randpasswd`
+	local current_instance_id=
+	local run_user='kcptun'
+	local target_addr=${IP}
+	local listen_port=800
+	local target_port=999
 
 	set_snmp(){
 
 		snmplog="$(get_current_file 'snmp')"
 
 		local input=
-		[ -z "$snmpperiod" ] && snmpperiod="$D_SNMPPERIOD"
+		[ -z "$snmpperiod" ] && snmpperiod="60"
 		while :
 		do
 			cat >&1 <<-EOF
@@ -1661,7 +1650,7 @@ install_kcptun(){
 			get_arch
 		fi
 
-		echo "${KCPTUN_INSTALL_DIR}/server_$file_suffix"
+		echo "${install_dir}/server_$file_suffix"
 	}
 
 	show_version_and_client_url(){
@@ -1717,9 +1706,9 @@ install_kcptun(){
 
 			if [ -n "$v" ]; then
 				if is_number "$v" || [ "$v" = "true" ] || [ "$v" = "false" ]; then
-					client_config="$(echo "$client_config" | $JQ_BIN -r ".${k}=${v}")"
+					client_config="$(echo "$client_config" | $jq_bin -r ".${k}=${v}")"
 				else
-					client_config="$(echo "$client_config" | $JQ_BIN -r ".${k}=\"${v}\"")"
+					client_config="$(echo "$client_config" | $jq_bin -r ".${k}=\"${v}\"")"
 				fi
 			fi
 		done
@@ -1751,9 +1740,10 @@ install_kcptun(){
 
 	show_current_instance_info(){
 
-		wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/kcptun_bin.sh
+		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/kcptun_bin.sh
 		chmod +x kcptun_bin.sh
 		./kcptun_bin.sh
+		rm -rf kcptun_bin.sh
 		local server_ip=
 		server_ip="${IP}"
 		clear
@@ -1774,7 +1764,7 @@ install_kcptun(){
 
 		read -d '' client_config <<-EOF
 		{
-		  "localaddr"	: "${target_port}",
+		  "localaddr"	: ":${target_port}",
 		  "remoteaddr"	: "${server_ip}:${listen_port}",
 		  "key"		: "${key}"
 		}
@@ -1807,7 +1797,7 @@ install_kcptun(){
 		echo "开始配置手动参数..."
 		local input=
 		local yn=
-		[ -z "$nodelay" ] && nodelay="$D_NODELAY"
+		[ -z "$nodelay" ] && nodelay="1"
 
 		while :
 		do
@@ -1844,7 +1834,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$interval" ] && interval="$D_INTERVAL"
+		[ -z "$interval" ] && interval="20"
 		while :
 		do
 			cat >&1 <<-EOF
@@ -1872,7 +1862,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$resend" ] && resend="$D_RESEND"
+		[ -z "$resend" ] && resend="2"
 		while :
 		do
 			cat >&1 <<-EOF
@@ -1912,7 +1902,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$nc" ] && nc="$D_NC"
+		[ -z "$nc" ] && nc="1"
 		while :
 		do
 			cat >&1 <<-EOF
@@ -1980,7 +1970,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-			( set -x; wget --tries=3 -O "$file" --no-check-certificate "$url" )
+			( set -x; wget -q --tries=3 -O "$file" --no-check-certificate "$url" )
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -2053,17 +2043,17 @@ install_kcptun(){
 
 	check_jq(){
 
-		if [ ! -f "$JQ_BIN" ]; then
+		if [ ! -f "$jq_bin" ]; then
 			return 1
 		fi
 
-		[ ! -x "$JQ_BIN" ] && chmod a+x "$JQ_BIN"
+		[ ! -x "$jq_bin" ] && chmod a+x "$jq_bin"
 
-		if ( $JQ_BIN --help 2>/dev/null | grep -q "JSON" ); then
+		if ( $jq_bin --help 2>/dev/null | grep -q "JSON" ); then
 			is_checkd_jq="true"
 			return 0
 		else
-			rm -f "$JQ_BIN"
+			rm -f "$jq_bin"
 			return 1
 		fi
 	}
@@ -2072,7 +2062,7 @@ install_kcptun(){
 
 		if [ -z "$is_checkd_jq" ] && ! check_jq; then
 			local dir=
-			dir="$(dirname "$JQ_BIN")"
+			dir="$(dirname "$jq_bin")"
 
 			if [ ! -d "$dir" ]; then
 				(
@@ -2088,7 +2078,7 @@ install_kcptun(){
 
 			case "$architecture" in
 				amd64|x86_64)
-					download_file "$JQ_LINUX64_URL" "$JQ_BIN" "$JQ_LINUX64_HASH"
+					download_file "https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/jq-linux64" "$jq_bin" "d8e36831c3c94bb58be34dd544f44a6c6cb88568"
 					;;
 			esac
 
@@ -2145,7 +2135,6 @@ install_kcptun(){
 
 		local input=
 		local yn=
-		[ -z "$listen_port" ] && listen_port="$D_LISTEN_PORT"
 
 		while :
 		do
@@ -2164,8 +2153,7 @@ install_kcptun(){
 				fi
 			fi
 
-			if port_using "$listen_port" && \
-				[ "$listen_port" != "$current_listen_port" ]; then
+			if port_using "$listen_port" ; then
 				echo "端口已被占用, 请重新输入!"
 				continue
 			fi
@@ -2181,7 +2169,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$target_addr" ] && target_addr="$D_TARGET_ADDR"
+		[ -z "$target_addr" ] && target_addr="$target_addr"
 
 		cat >&1 <<-EOF
 		请输入需要加速的地址
@@ -2201,14 +2189,14 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$target_port" ] && target_port="$D_TARGET_PORT"
+		[ -z "$target_port" ] && target_port="999"
 		while :
 		do
 			cat >&1 <<-EOF
-			请输入需要加速的端口 [1~65535]
+			请输入需要加速的SS端口 [1~65535]
 			EOF
 
-			read -p "(默认: ${target_port}): " input
+			read -p "(默认SS端口为: ${target_port}): " input
 			if [ -n "$input" ]; then
 				if is_port "$input"; then
 					if [ "$input" = "$listen_port" ]; then
@@ -2224,9 +2212,9 @@ install_kcptun(){
 			fi
 
 			if [ "$target_addr" = "127.0.0.1" ] && ! port_using "$target_port"; then
-				read -p "当前没有软件使用此端口, 确定加速此端口? [y/n]: " yn
-				if [ -n "$yn" ]; then
-					case "${yn:0:1}" in
+				read -p "当前没有软件使用此端口, 确定加速此端口? [y/n]: " input
+				if [ -n "$input" ]; then
+					case "${input:0:1}" in
 						y|Y)
 							;;
 						*)
@@ -2248,7 +2236,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$key" ] && key="$D_KEY"
+		[ -z "$key" ] && key="$d_key"
 
 		cat >&1 <<-EOF
 		请设置 Kcptun 密码(key)
@@ -2266,7 +2254,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$crypt" ] && crypt="$D_CRYPT"
+		[ -z "$crypt" ] && crypt="salsa20"
 		local crypt_list="aes aes-128 aes-192 salsa20 blowfish twofish cast5 3des tea xtea xor none"
 		local i=0
 
@@ -2309,7 +2297,7 @@ install_kcptun(){
 		-----------------------------
 		EOF
 
-		[ -z "$mode" ] && mode="$D_MODE"
+		[ -z "$mode" ] && mode="fast3"
 		local mode_list="normal fast fast2 fast3 manual"
 		i=0
 
@@ -2360,7 +2348,7 @@ install_kcptun(){
 			nc=
 		fi
 
-		[ -z "$mtu" ] && mtu="$D_MTU"
+		[ -z "$mtu" ] && mtu="1300"
 
 		while :
 		do
@@ -2389,7 +2377,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$sndwnd" ] && sndwnd="$D_SNDWND"
+		[ -z "$sndwnd" ] && sndwnd="2048"
 
 		while :
 		do
@@ -2419,7 +2407,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$rcvwnd" ] && rcvwnd="$D_RCVWND"
+		[ -z "$rcvwnd" ] && rcvwnd="2048"
 
 		while :
 		do
@@ -2448,7 +2436,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$datashard" ] && datashard="$D_DATASHARD"
+		[ -z "$datashard" ] && datashard="10"
 
 		while :
 		do
@@ -2478,7 +2466,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$parityshard" ] && parityshard="$D_PARITYSHARD"
+		[ -z "$parityshard" ] && parityshard="3"
 
 		while :
 		do
@@ -2508,7 +2496,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$dscp" ] && dscp="$D_DSCP"
+		[ -z "$dscp" ] && dscp="0"
 
 		while :
 		do
@@ -2537,7 +2525,7 @@ install_kcptun(){
 		---------------------------
 		EOF
 
-		[ -z "$nocomp" ] && nocomp="$D_NOCOMP"
+		[ -z "$nocomp" ] && nocomp="false"
 
 		while :
 		do
@@ -2545,9 +2533,9 @@ install_kcptun(){
 			是否关闭数据压缩?
 			EOF
 
-			read -p "(默认: ${nocomp}) [y/n]: " yn
-			if [ -n "$yn" ]; then
-				case "${yn:0:1}" in
+			read -p "(默认: ${nocomp}) [y/n]: " input
+			if [ -n "$input" ]; then
+				case "${input:0:1}" in
 					y|Y)
 						nocomp='true'
 						;;
@@ -2576,9 +2564,9 @@ install_kcptun(){
 		是否记录 SNMP 日志?
 		EOF
 
-		read -p "(默认: 否) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "${yn:0:1}" in
+		read -p "(默认: 否) [y/n]: " input
+		if [ -n "$input" ]; then
+			case "${input:0:1}" in
 				y|Y)
 					set_snmp
 					;;
@@ -2591,7 +2579,7 @@ install_kcptun(){
 			unset_snmp
 		fi
 
-		[ -z "$pprof" ] && pprof="$D_PPROF"
+		[ -z "$pprof" ] && pprof="false"
 
 		while :
 		do
@@ -2600,9 +2588,9 @@ install_kcptun(){
 			地址: http://IP:6060/debug/pprof/
 			EOF
 
-			read -p "(默认: ${pprof}) [y/n]: " yn
-			if [ -n "$yn" ]; then
-				case "${yn:0:1}" in
+			read -p "(默认: ${pprof}) [y/n]: " input
+			if [ -n "$input" ]; then
+				case "${input:0:1}" in
 					y|Y)
 						pprof='true'
 						;;
@@ -2633,9 +2621,9 @@ install_kcptun(){
 		通常情况下保持默认即可，不用额外设置
 		EOF
 
-		read -p "(默认: 否) [y/n]: " yn
-		if [ -n "$yn" ]; then
-			case "${yn:0:1}" in
+		read -p "(默认: 否) [y/n]: " input
+		if [ -n "$input" ]; then
+			case "${input:0:1}" in
 				y|Y)
 					set_hidden_parameters
 					;;
@@ -2659,19 +2647,15 @@ install_kcptun(){
 	install_deps(){
 
 		if ! command_exists wget; then
-			( set -x; sleep 3; yum -y -q install wget ca-certificates )
+			( set -x; sleep 3; yum -q -y install ca-certificates )
 		fi
 
 		if ! command_exists awk; then
-			( set -x; sleep 3; yum -y -q install gawk )
+			( set -x; sleep 3; yum -q -y install gawk )
 		fi
 
 		if ! command_exists tar; then
-			( set -x; sleep 3; yum -y -q install tar )
-		fi
-
-		if ! command_exists easy_install; then
-			( set -x; sleep 3; yum -y -q install python-setuptools )
+			( set -x; sleep 3; yum -q -y install tar )
 		fi
 
 		install_jq
@@ -2684,10 +2668,10 @@ install_kcptun(){
 
 		if [ -n "$request_version" ]; then
 			local json_content=
-			json_content="$(get_content "$KCPTUN_RELEASES_URL")"
+			json_content="$(get_content "https://api.github.com/repos/xtaci/kcptun/releases")"
 			version_content="$(get_json_string "$json_content" ".[] | select(.tag_name == \"${request_version}\")")"
 		else
-			version_content="$(get_content "$KCPTUN_LATEST_RELEASE_URL")"
+			version_content="$(get_content "https://api.github.com/repos/xtaci/kcptun/releases/latest")"
 		fi
 
 		if [ -z "$version_content" ]; then
@@ -2758,24 +2742,24 @@ install_kcptun(){
 		local kcptun_file_name="kcptun-${kcptun_release_tag_name}.tar.gz"
 		download_file "$kcptun_release_download_url" "$kcptun_file_name" "$kcptun_release_verify"
 
-		if [ ! -d "$KCPTUN_INSTALL_DIR" ]; then
+		if [ ! -d "$install_dir" ]; then
 			(
 				set -x
-				mkdir -p "$KCPTUN_INSTALL_DIR"
+				mkdir -p "$install_dir"
 			)
 		fi
 
-		if [ ! -d "$KCPTUN_LOG_DIR" ]; then
+		if [ ! -d "$log_dir" ]; then
 			(
 				set -x
-				mkdir -p "$KCPTUN_LOG_DIR"
-				chmod a+w "$KCPTUN_LOG_DIR"
+				mkdir -p "$log_dir"
+				chmod a+w "$log_dir"
 			)
 		fi
 
 		(
 			set -x
-			tar -zxf "$kcptun_file_name" -C "$KCPTUN_INSTALL_DIR"
+			tar -zxf "$kcptun_file_name" -C "$install_dir"
 			sleep 3
 		)
 
@@ -2807,7 +2791,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-		rm -f "$kcptun_file_name" "${KCPTUN_INSTALL_DIR}/client_$file_suffix"
+		rm -f "$kcptun_file_name" "${install_dir}/client_$file_suffix"
 	}
 
 	get_network_content(){
@@ -2825,7 +2809,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-		content="$(wget --tries=3 -qO- --no-check-certificate "$url")"
+		content="$(wget -q --tries=3 -qO- --no-check-certificate "$url")"
 
 		if [ "$?" != "0" ] || [ -z "$content" ]; then
 			retry=$(expr $retry + 1)
@@ -2846,13 +2830,13 @@ install_kcptun(){
 
 		case "$1" in
 			config)
-				printf '%s/server-config%s.json' "$KCPTUN_INSTALL_DIR" "$current_instance_id"
+				printf '%s/server-config%s.json' "$install_dir" "$current_instance_id"
 				;;
 			log)
-				printf '%s/server%s.log' "$KCPTUN_LOG_DIR" "$current_instance_id"
+				printf '%s/server%s.log' "$log_dir" "$current_instance_id"
 				;;
 			snmp)
-				printf '%s/snmplog%s.log' "$KCPTUN_LOG_DIR" "$current_instance_id"
+				printf '%s/snmplog%s.log' "$log_dir" "$current_instance_id"
 				;;
 			supervisor)
 				printf '/etc/supervisor/conf.d/kcptun%s.conf' "$current_instance_id"
@@ -2869,7 +2853,7 @@ install_kcptun(){
 		local str=
 
 		if [ -n "$content" ]; then
-			str="$(echo "$content" | $JQ_BIN -r "$selector" 2>/dev/null)"
+			str="$(echo "$content" | $jq_bin -r "$selector" 2>/dev/null)"
 
 			if [ -n "$str" ] && [ -n "$regex" ]; then
 				str="$(echo "$str" | grep -oE "$regex")"
@@ -2987,9 +2971,9 @@ install_kcptun(){
 
 			if [ -n "$v" ]; then
 				if is_number "$v" || [ "$v" = "false" ] || [ "$v" = "true" ]; then
-					json="$(echo "$json" | $JQ_BIN ".$k=$v")"
+					json="$(echo "$json" | $jq_bin ".$k=$v")"
 				else
-					json="$(echo "$json" | $JQ_BIN ".$k=\"$v\"")"
+					json="$(echo "$json" | $jq_bin ".$k=\"$v\"")"
 				fi
 			fi
 		done
@@ -3012,17 +2996,13 @@ install_kcptun(){
 			mk_file_dir "$snmplog" '777'
 		fi
 
-		if ( echo "$listen_addr" | grep -q ":" ); then
-			listen_addr="[${listen_addr}]"
-		fi
-
 		if ( echo "$target_addr" | grep -q ":" ); then
 			target_addr="[${target_addr}]"
 		fi
 
 		cat > "$config_file"<<-EOF
 		{
-		  "listen": "${listen_addr}:${listen_port}",
+		  "listen": ":${listen_port}",
 		  "target": "${target_addr}:${target_port}",
 		  "key": "${key}",
 		  "crypt": "${crypt}",
@@ -3050,7 +3030,7 @@ install_kcptun(){
 		cat > "$supervisor_config_file"<<-EOF
 		[program:kcptun${current_instance_id}]
 		user=${run_user}
-		directory=${KCPTUN_INSTALL_DIR}
+		directory=${install_dir}
 		command=$(get_kcptun_server_file) -c "${config_file}"
 		process_name=%(program_name)s
 		autostart=true
@@ -3069,9 +3049,6 @@ install_kcptun(){
 			fi
 
 			if [ "$?" = "0" ]; then
-				if [ -n "$current_listen_port" ]; then
-					firewall-cmd --zone=public --remove-port=${current_listen_port}/udp >/dev/null 2>&1
-				fi
 
 				if ! firewall-cmd --quiet --zone=public --query-port=${listen_port}/udp; then
 					firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
@@ -3090,12 +3067,6 @@ install_kcptun(){
 				systemctl restart supervisord.service
 			else
 				systemctl start supervisord.service
-			fi
-		elif command_exists service; then
-			if service supervisord status >/dev/null 2>&1; then
-				service supervisord restart
-			else
-				service supervisord start
 			fi
 		fi
 
@@ -3127,7 +3098,7 @@ install_kcptun(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装Kcptun"
+	echo "开始安装Kcptun,请耐心等待!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3146,7 +3117,7 @@ install_kcptun(){
 	show_current_instance_info > kcptun.log
 	clear
 	echo "#######################################################################"
-	echo "请保存好Kcptun配置！"
+	echo "请保存好Kcptun配置!"
 	echo ""
 	sed -n '6,18p' kcptun.log
 	echo "#######################################################################"
@@ -3169,7 +3140,7 @@ install_dnscrypt(){
 	echo ""
 	dnscrypt=`randusername`
 	cd
-	git clone --recursive git://github.com/cofyc/dnscrypt-wrapper.git
+	git clone -q --recursive git://github.com/cofyc/dnscrypt-wrapper.git
 	cd dnscrypt-wrapper
 	make configure
 	./configure
@@ -3177,7 +3148,7 @@ install_dnscrypt(){
 	ldconfig
 	sleep 1
 	cd
-	wget --tries=3 -O dnscrypt-proxy.tar.gz https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz
+	wget -q --tries=3 -O dnscrypt-proxy.tar.gz https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz
 	tar zxvf dnscrypt-proxy.tar.gz
 	cd dnscrypt-proxy*
 	./configure
@@ -3191,13 +3162,13 @@ install_dnscrypt(){
 	pub=$(cat dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
 	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=1.key
 	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=1.key --provider-cert-file=1.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
-	firewall-cmd --permanent --zone=public --add-port=5453/tcp
-	firewall-cmd --permanent --zone=public --add-port=5354/tcp
-	firewall-cmd --permanent --zone=public --add-port=3535/tcp
-	firewall-cmd --permanent --zone=public --add-port=5453/udp
-	firewall-cmd --permanent --zone=public --add-port=5354/udp
-	firewall-cmd --permanent --zone=public --add-port=3535/udp
-	firewall-cmd --permanent --zone=public --add-port=53/udp
+	firewall-cmd --quiet --permanent --zone=public --add-port=5453/tcp
+	firewall-cmd --quiet --permanent --zone=public --add-port=5354/tcp
+	firewall-cmd --quiet --permanent --zone=public --add-port=3535/tcp
+	firewall-cmd --quiet --permanent --zone=public --add-port=5453/udp
+	firewall-cmd --quiet --permanent --zone=public --add-port=5354/udp
+	firewall-cmd --quiet --permanent --zone=public --add-port=3535/udp
+	firewall-cmd --quiet --permanent --zone=public --add-port=53/udp
 	firewall-cmd --reload
 
 	if [ ! -e "/usr/lib/systemd/system/supervisord.service" ]; then
@@ -3243,9 +3214,10 @@ install_dnscrypt(){
 	systemctl daemon-reload
 	systemctl start dnscrypt-wrapper
 	systemctl enable dnscrypt-wrapper
-	yum install dnsmasq -y
-	wget --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
-	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
+	systemctl -a | grep dnscrypt-wrapper
+	yum install dnsmasq -q -y
+	wget -q --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
+	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -q -y
 	rm -rf pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	cp /etc/pdnsd.conf.sample /etc/pdnsd.conf
 
@@ -3298,6 +3270,8 @@ install_dnscrypt(){
 	systemctl enable pdnsd
 	systemctl start dnsmasq.service
 	systemctl enable dnsmasq.service
+	systemctl -a | grep pdnsd
+	systemctl -a | grep dnsmasq
 
 	cat > /etc/dnsmasq.conf<<-EOF
 	no-resolv
@@ -3337,25 +3311,24 @@ clearsystem(){
 	echo ""
 	echo "#######################################################################"
 	cd
-	rm -rf kcptun_bin.sh l2tp_bin.sh l2tp.sh
 
 	if [ -e "gogogo.sh" ]; then
 		mv gogogo.sh /usr/local/bin/gogogo
 	fi
 	
-	yum autoremove -y
-	yum makecache
-	yum-complete-transaction --cleanup-only -y
+	yum autoremove -q -y
+	yum makecache -q
+	yum-complete-transaction --cleanup-only -q -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
 	package-cleanup --problems
-	rpm -Va --nofiles --nodigest
-	yum clean all -y
+	rpm --quiet -Va --nofiles --nodigest
+	yum clean all -q -y
 	rm -rf /var/cache/yum
-	rpm --rebuilddb
+	rpm --quiet --rebuilddb
 	echo "#######################################################################"
 	echo ""
-	echo "清理完毕！"
+	echo "清理完毕!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3432,19 +3405,16 @@ finally(){
 	echo -e "Server IP:\033[41;30m${IP}\033[0m"
 	echo -e "UUID:\033[41;30m${UUID}\033[0m"
 	echo -e "V2Ray Port:\033[41;30m8888\033[0m"
-	echo -e "V2Ray SS Port:\033[41;30m8889\033[0m"
-	echo -e "V2Ray SS Encryption:\033[41;30maes-256-cfb\033[0m"
-	echo -e "V2Ray SS Password:\033[41;30m${v2raysspw}\033[0m"
 	echo ""
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
 	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5453 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m"
 	echo "#######################################################################"
 	echo ""
 
-	read -p "刚刚更新了系统内核和默认shell，是否重启系统 ? (y/n) [默认=n]:" yy
+	read -p "刚刚更新了系统内核和默认shell，是否重启系统 ? (y/n) [默认=n]:" input
 	echo "#######################################################################"
 
-	case $yy in
+	case $input in
 		y|Y)
 			init 6
 			;;
@@ -3457,6 +3427,7 @@ finally(){
 
 submenu1(){
 
+	clear
 	echo "#######################################################################"
 	echo ""
 	echo "(0) 返回"
@@ -3467,12 +3438,12 @@ submenu1(){
 	echo ""
 	echo "#######################################################################"
 
-	read -p "请选择要执行的模块？[默认执行(1)]:" xx1
-		if [ -z ${xx1} ] ; then
-			xx1=1
+	read -p "请选择要执行的模块？[默认执行(1)]:" input
+		if [ -z ${input} ] ; then
+			input=1
 		fi
 
-	case $xx1 in
+	case $input in
 		0)
 			mainmenu
 			;;
@@ -3499,6 +3470,7 @@ submenu1(){
 
 submenu2(){
 
+	clear
 	echo "#######################################################################"
 	echo ""
 	echo "(0) 返回"
@@ -3508,12 +3480,12 @@ submenu2(){
 	echo ""
 	echo "#######################################################################"
 
-	read -p "请选择要执行的模块？[默认执行(1)]:" xx2
-		if [ -z ${xx2} ] ; then
-			xx2=1
+	read -p "请选择要执行的模块？[默认执行(1)]:" input
+		if [ -z ${input} ] ; then
+			input=1
 		fi
 
-	case $xx2 in
+	case $input in
 		0)
 			mainmenu
 			;;
@@ -3560,12 +3532,12 @@ mainmenu(){
 	echo ""
 	echo "#######################################################################"
 
-	read -p "请选择要执行的模块？[默认执行(1)]:" xx
-		if [ -z ${xx} ] ; then
-			xx=1
+	read -p "请选择要执行的模块？[默认执行(1)]:" input
+		if [ -z ${input} ] ; then
+			input=1
 		fi
 
-	case $xx in
+	case $input in
 		0)
 			exit
 			;;
