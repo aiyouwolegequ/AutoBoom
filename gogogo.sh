@@ -1386,10 +1386,8 @@ install_supervisor(){
 		fi
 
 		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
-			(
-				set -x
-				echo "${verify}  ${file}" | $verify_cmd -c
-			)
+			set -x
+			echo "${verify}  ${file}" | $verify_cmd -c
 			return $?
 		fi
 
@@ -1424,7 +1422,7 @@ install_supervisor(){
 			mainmenu
 		fi
 
-			( set -x; wget -q  --tries=3 -O "$file" --no-check-certificate "$url" )
+		set -x; wget -q  --tries=3 -O "$file" --no-check-certificate "$url"
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -1435,31 +1433,23 @@ install_supervisor(){
 	config_install_supervisor(){
 
 		if [ ! -d "/etc/supervisor/conf.d" ]; then
-			(
-				set -x
-				mkdir -p /etc/supervisor/conf.d
-			)
+			set -x
+			mkdir -p /etc/supervisor/conf.d
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisord" ]; then
-			(
-				set -x
-				ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
-			)
+			set -x
+			ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisorctl" ]; then
-			(
-				set -x
-				ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
-			)
+			set -x
+			ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/pidproxy" ]; then
-			(
-				set -x
-				ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
-			)
+			set -x
+			ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
 		fi
 
 		local cfg_file='/etc/supervisor/supervisord.conf'
@@ -1476,10 +1466,9 @@ install_supervisor(){
 				mainmenu
 			fi
 
-			(
-				set -x
-				echo_supervisord_conf >"$cfg_file" 2>/dev/null
-			)
+			set -x
+			echo_supervisord_conf >"$cfg_file" 2>/dev/null
+
 
 			if [ "$?" != "0" ]; then
 				echo "创建 Supervisor 配置文件失败!"
@@ -1506,10 +1495,8 @@ install_supervisor(){
 			supervisor_startup_file='/lib/systemd/system/supervisord.service'
 			supervisor_startup_file_url="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/supervisord.systemd"
 			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
-			(
-				set -x
-				systemctl daemon-reload >/dev/null 2>&1
-			)
+			set -x
+			systemctl daemon-reload >/dev/null 2>&1
 		fi
 	}
 
@@ -1634,7 +1621,6 @@ install_kcptun(){
 	set_snmp(){
 
 		snmplog="$(get_current_file 'snmp')"
-
 		local input=
 		[ -z "$snmpperiod" ] && snmpperiod="60"
 		while :
@@ -1690,13 +1676,11 @@ install_kcptun(){
 
 		if [ -n "$version" ]; then
 			cat >&1 <<-EOF
-
 			当前安装的 Kcptun 版本为: ${version}
 			EOF
 		fi
 
 		if [ -n "$kcptun_release_html_url" ]; then
-
 			cat >&1 <<-EOF
 			请自行前往:
 			  ${kcptun_release_html_url}
@@ -2677,15 +2661,15 @@ install_kcptun(){
 	install_deps(){
 
 		if ! command_exists wget; then
-			( set -x; sleep 3; yum -q -y install ca-certificates )
+			set -x; sleep 3; yum -q -y install ca-certificates
 		fi
 
 		if ! command_exists awk; then
-			( set -x; sleep 3; yum -q -y install gawk )
+			set -x; sleep 3; yum -q -y install gawk
 		fi
 
 		if ! command_exists tar; then
-			( set -x; sleep 3; yum -q -y install tar )
+			set -x; sleep 3; yum -q -y install tar
 		fi
 
 		install_jq
@@ -2773,26 +2757,19 @@ install_kcptun(){
 		download_file "$kcptun_release_download_url" "$kcptun_file_name" "$kcptun_release_verify"
 
 		if [ ! -d "$install_dir" ]; then
-			(
-				set -x
-				mkdir -p "$install_dir"
-			)
+			set -x
+			mkdir -p "$install_dir"
 		fi
 
 		if [ ! -d "$log_dir" ]; then
-			(
-				set -x
-				mkdir -p "$log_dir"
-				chmod a+w "$log_dir"
-			)
+			set -x
+			mkdir -p "$log_dir"
+			chmod a+w "$log_dir"
 		fi
 
-		(
-			set -x
-			tar -zxf "$kcptun_file_name" -C "$install_dir"
-			sleep 3
-		)
-
+		set -x
+		tar -zxf "$kcptun_file_name" -C "$install_dir"
+		sleep 3
 		local kcptun_server_file=
 		kcptun_server_file="$(get_kcptun_server_file)"
 
@@ -2910,31 +2887,23 @@ install_kcptun(){
 	config_install_supervisor(){
 
 		if [ ! -d "/etc/supervisor/conf.d" ]; then
-			(
-				set -x
-				mkdir -p /etc/supervisor/conf.d
-			)
+			set -x
+			mkdir -p /etc/supervisor/conf.d
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisord" ]; then
-			(
-				set -x
-				ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
-			)
+			set -x
+			ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisorctl" ]; then
-			(
-				set -x
-				ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
-			)
+			set -x
+			ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/pidproxy" ]; then
-			(
-				set -x
-				ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
-			)
+			set -x
+			ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
 		fi
 
 		local cfg_file='/etc/supervisor/supervisord.conf'
@@ -2951,10 +2920,8 @@ install_kcptun(){
 				mainmenu
 			fi
 
-			(
-				set -x
-				echo_supervisord_conf >"$cfg_file" 2>/dev/null
-			)
+			set -x
+			echo_supervisord_conf >"$cfg_file" 2>/dev/null
 
 			if [ "$?" != "0" ]; then
 				echo "创建 Supervisor 配置文件失败!"
@@ -2979,10 +2946,8 @@ install_kcptun(){
 		local mod=$2
 
 		if [ ! -d "$dir" ]; then
-			(
-				set -x
-				mkdir -p "$dir"
-			)
+			set -x
+			mkdir -p "$dir"
 		fi
 
 		if [ -n "$mod" ]; then
@@ -3090,7 +3055,7 @@ install_kcptun(){
 
 	start_supervisor(){
 
-		( set -x; sleep 3 )
+		set -x; sleep 3
 
 		if command_exists systemctl; then
 			if systemctl status supervisord.service >/dev/null 2>&1; then
