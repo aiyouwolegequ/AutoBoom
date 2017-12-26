@@ -970,7 +970,7 @@ install_shadowsocks(){
 	esac
 
 	cd
-	git clone https://github.com/shadowsocks/shadowsocks-libev.git
+	git clone -q https://github.com/shadowsocks/shadowsocks-libev.git
 
 	if [ -d "/root/shadowsocks-libev" ]; then
 		cd shadowsocks-libev
