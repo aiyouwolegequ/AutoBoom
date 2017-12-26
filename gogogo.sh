@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.4
+SHELL_VERSION=2.1.5
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -593,8 +593,10 @@ add_ssh(){
 			echo "#######################################################################"
 			if [ -z "$input" ]; then
 				echo "公钥不能为空!"
+				continue
 			else
 				check_user
+				pub=$input
 
 				if [ -f "${sshdir}/.ssh/authorized_keys" ]; then
 					su - ${newusername} -c "echo ${pub} >> ${sshdir}/.ssh/authorized_keys"
