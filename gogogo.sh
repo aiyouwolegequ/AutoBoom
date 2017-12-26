@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.5
+SHELL_VERSION=2.1.6
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -284,7 +284,7 @@ pre_install(){
 		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	fi
 
-	for a in elrepo-release epel-release yum-plugin-fastestmirror yum-utils deltarpm
+	for a in elrepo-release epel-release yum-plugin-fastestmirror yum-utils deltarpm elrepo-kernel
 	do
 		if [ `rpm -qa | grep $a |wc -l` -ne 1 ];then
 			yum install $a -q -y
