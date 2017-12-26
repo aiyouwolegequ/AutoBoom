@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.3
+SHELL_VERSION=2.1.4
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -134,7 +134,7 @@ set_sysctl(){
 	echo "vm.min_free_kbytes = 65536" >> /etc/sysctl.conf
 	echo "fs.file-max = 51200" >> /etc/sysctl.conf
 
-	for each in `ls /proc/sys/net/ipv4/conf/`; 
+	for each in `ls /proc/sys/net/ipv4/conf/`;
 	do
 		echo "net.ipv4.conf.${each}.accept_source_route=0" >> /etc/sysctl.conf
 		echo "net.ipv4.conf.${each}.accept_redirects=0" >> /etc/sysctl.conf
@@ -158,13 +158,13 @@ any_key_to_continue(){
 
 auto_continue(){
 
-	seconds_left=5 
+	seconds_left=5
 	while [ $seconds_left -gt 0 ];
 	do
 		echo -e -n "脚本将在\e[0;31m${seconds_left}\e[0m秒后继续执行或按\e[0;31m Ctrl + C\e[0m 手动退出 ...\r"
 		sleep 1
 		seconds_left=$(($seconds_left - 1))
-	done	
+	done
 }
 
 randusername(){
@@ -202,6 +202,23 @@ check_port(){
 			[ $port -ge 1 ] && [ $port -le 65535 ]
 	}
 
+	is_using(){
+
+		port_using=`lsof -nP -itcp:"$listen_port" | wc -l`
+
+		if [ "$port_using" -ne 0 ]; then
+			echo "端口已被占用, 请重新输入!"
+			listen_port="$d_listen_port"
+			continue
+		else
+			if [ `firewall-cmd --list-ports | grep "$listen_port" |wc -l` -ne 1 ]; then
+				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/tcp
+				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
+				firewall-cmd --reload
+			fi
+		fi
+	}
+
 	local input=
 	[ -z "$listen_port" ] && listen_port="$d_listen_port"
 
@@ -211,27 +228,24 @@ check_port(){
 		if [ -n "$input" ]; then
 			if is_port "$input"; then
 				listen_port="$input"
+				is_using
 			else
 				echo "输入有误, 请输入 1~65535 之间的数字!"
 				continue
 			fi
-		fi
-
-		port_using=`lsof -nP -itcp:"$listen_port" | wc -l`
-
-		if [ "$port_using" -ne 0 ]; then
-			echo "端口已被占用, 请重新输入!"
-			continue
 		else
-			if [ `firewall-cmd --list-ports | grep "$listen_port" |wc -l` -ne 1 ]; then 
-				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/tcp
-				firewall-cmd --quiet --permanent --zone=public --add-port=${listen_port}/udp
-				firewall-cmd --reload
-			fi
+			is_using
 		fi
-		listen_port="$input"
+
 		break
 	done
+}
+
+check_IP(){
+
+	if [ -z "$IP" ]; then
+		IP=`ifconfig -a | grep inet | grep -v 127.0.0.1 | grep -v inet6 | awk '{print $2}' | tr -d "addr:" | head -1`
+	fi
 }
 
 pre_install(){
@@ -252,7 +266,7 @@ pre_install(){
 
 	source /etc/profile
 	hostnamectl set-hostname ${IP}
-	yum clean all -q 
+	yum clean all -q
 
 	if [ ! -f "/etc/yum.conf.bak" ]; then
 		cp /etc/yum.conf /etc/yum.conf.bak
@@ -270,7 +284,7 @@ pre_install(){
 		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 	fi
 
-	for a in elrepo-release epel-release yum-plugin-fastestmirror yum-utils deltarpm 
+	for a in elrepo-release epel-release yum-plugin-fastestmirror yum-utils deltarpm
 	do
 		if [ `rpm -qa | grep $a |wc -l` -ne 1 ];then
 			yum install $a -q -y
@@ -278,14 +292,14 @@ pre_install(){
 	done
 
 	while [ `rpm -qa |grep epel-release | wc -l` -eq 0 ]
-	do 
+	do
 		sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel.repo
 		sed -i "s/^metalink/#metalink/g" /etc/yum.repos.d/epel.repo
 		sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel-testing.repo
 		sed -i "s/^metalink/#metalink/g" /etc/yum.repos.d/epel-testing.repo
 	done
 
-	yum makecache -q 
+	yum makecache -q
 	rm -f /var/run/yum.pid
 
 	yum install gcc gettext swig autoconf libtool python-setuptools automake tree pcre-devel psmisc curl unzip mlocate lsof sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc-c++ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -q -y
@@ -405,7 +419,7 @@ changerootpasswd(){
 	echo ""
 	read -p "是否需要更换root密码? (y/n) [默认=n]:" input
 		case "$input" in
-			y|Y)	
+			y|Y)
 				newrootpasswd=`randpasswd`
 				echo ""
 				echo "#######################################################################"
@@ -416,7 +430,7 @@ changerootpasswd(){
 				echo "${newrootpasswd}" | passwd --stdin root
 				echo "#######################################################################"
 				echo ""
-				echo -e "新root密码为	:\033[41;30m${newrootpasswd}\033[0m" 
+				echo -e "新root密码为	:\033[41;30m${newrootpasswd}\033[0m"
 				echo "请妥善保存root密码!"
 				echo ""
 				echo "#######################################################################"
@@ -450,8 +464,8 @@ add_newuser(){
 				echo "#######################################################################"
 				echo ""
 				echo "请保存好用户名和密码!"
-				echo -e "Username:\033[41;30m${newusername}\033[0m" 
-				echo -e "Password:\033[41;30m${newuserpasswd}\033[0m" 
+				echo -e "Username:\033[41;30m${newusername}\033[0m"
+				echo -e "Password:\033[41;30m${newuserpasswd}\033[0m"
 				echo ""
 				echo "#######################################################################"
 				echo ""
@@ -468,7 +482,7 @@ add_newuser(){
 						;;
 				esac
 				;;
-			*)	
+			*)
 				clear
 				echo "#######################################################################"
 				echo ""
@@ -478,12 +492,12 @@ add_newuser(){
 						echo "#######################################################################"
 						echo ""
 						echo "现有的普通账户为:"
-						getent passwd | grep home | awk -F: '{print $1}'						
+						getent passwd | grep home | awk -F: '{print $1}'
 						while :
 						do
 							echo ""
 							echo "#######################################################################"
-							read -p "请输入需要设置ssh的普通账户:" input 
+							read -p "请输入需要设置ssh的普通账户:" input
 							newusername=${input}
 							if [ -n "$newusername" ]; then
 								if [ `getent passwd | grep "$newusername" | wc -l` -eq 1 ]; then
@@ -506,20 +520,31 @@ add_newuser(){
 						;;
 				esac
 				;;
-		esac			
+		esac
 }
 
 add_ssh(){
 
+	setenforce 0
+
+	check_user(){
+
+		if [ -z "$newusername" ]; then
+			newusername=`whoami`
+			sshdir=/root
+		fi
+	}
+
 	clear
 	local d_listen_port=10010
+	local sshdir=/home/${newusername}
 	local port=`cat /etc/ssh/sshd_config | grep -w "Port" | awk '{print $2}' | uniq`
 	local listen_port=
 	read -p "当前ssh端口为${port}，是否需要更换端口? (y/n) [默认=n]:" input
 	case "$input" in
 		y|Y)
 			echo "#######################################################################"
-			echo ""		
+			echo ""
 			check_port
 			echo "#######################################################################"
 			echo ""
@@ -569,20 +594,23 @@ add_ssh(){
 			if [ -z "$input" ]; then
 				echo "公钥不能为空!"
 			else
-				if [ -f "/home/${newusername}/.ssh/authorized_keys" ]; then
-					su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
+				check_user
+
+				if [ -f "${sshdir}/.ssh/authorized_keys" ]; then
+					su - ${newusername} -c "echo ${pub} >> ${sshdir}/.ssh/authorized_keys"
 				else
-					su - ${newusername} -c "ssh-keygen -t rsa -P '' -f /home/${newusername}/.ssh/id_rsa"
-					su - ${newusername} -c "touch /home/${newusername}/.ssh/authorized_keys"
-					su - ${newusername} -c "chmod 700 /home/${newusername}/.ssh"
-					su - ${newusername} -c "chmod 644 /home/${newusername}/.ssh/authorized_keys"
-					su - ${newusername} -c "echo ${pub} >> /home/${newusername}/.ssh/authorized_keys"
+					su - ${newusername} -c "ssh-keygen -t rsa -P '' -f ${sshdir}/.ssh/id_rsa"
+					su - ${newusername} -c "touch ${sshdir}/.ssh/authorized_keys"
+					su - ${newusername} -c "chmod 700 ${sshdir}/.ssh"
+					su - ${newusername} -c "chmod 644 ${sshdir}/.ssh/authorized_keys"
+					su - ${newusername} -c "echo ${pub} >> ${sshdir}/.ssh/authorized_keys"
 				fi
 		 		break
 		 	fi
 	done
 
 	systemctl restart sshd
+	check_IP
 	echo "请使用该命令测试ssh是否正常: ssh -p ${listen_port} ${newusername}@${IP}"
 	echo "#######################################################################"
 	read -p "请确认ssh是否正常? (y/n) [默认=y]:" input
@@ -645,7 +673,7 @@ install_ckrootkit_rkhunter(){
 	if [ ! -f "/usr/local/bin/chkrootkit" ]; then
 		wget -q --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
-		if [ -a "chkrootkit.tar.gz" ]; then	
+		if [ -a "chkrootkit.tar.gz" ]; then
 			tar zxf chkrootkit.tar.gz
 			cd chkrootkit-*
 			make clean
@@ -674,7 +702,7 @@ install_ckrootkit_rkhunter(){
 		echo ""
 		rkhunter --check --sk | grep Warning
 		chkrootkit > chkrootkit.log
-		cat chkrootkit.log| grep INFECTED 
+		cat chkrootkit.log| grep INFECTED
 		mv /var/log/rkhunter/rkhunter.log ./
 		cd
 		echo "#######################################################################"
@@ -707,7 +735,7 @@ install_aide(){
 	cd
 
 	if [ ! -f "/bin/aide" ]; then
-		yum install aide -q -y 
+		yum install aide -q -y
 		aide --init
 		cp -rf /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
 	fi
@@ -922,7 +950,7 @@ install_shadowsocks(){
 	case "$input" in
 		y|Y)
 			echo "#######################################################################"
-			echo ""		
+			echo ""
 			check_port
 			echo "#######################################################################"
 			echo ""
@@ -931,7 +959,7 @@ install_shadowsocks(){
 			echo "#######################################################################"
 			;;
 		*)
-			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then 
+			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then
 				firewall-cmd --zone=public --add-port=${listen_port}/tcp --permanent
 				firewall-cmd --zone=public --add-port=${listen_port}/udp --permanent
 				firewall-cmd --reload
@@ -1004,7 +1032,7 @@ install_shadowsocks(){
 		192.168.0.0/16
 		120.41.0.0/16
 		EOF
-		
+
 		systemctl daemon-reload
 		systemctl start shadowsocks-libev.service
 		systemctl enable shadowsocks-libev.service
@@ -1023,7 +1051,7 @@ install_shadowsocks(){
 		echo ""
 		echo "#######################################################################"
 		echo ""
-	else 
+	else
 		echo "#######################################################################"
 		echo ""
 		echo "Shadowsocks安装失败，请稍后再试."
@@ -1062,7 +1090,7 @@ install_pptp(){
 	local str=`firewall-cmd --list-all | grep masquerade | awk '{print $2}'`
 
 	if [ "${str}" != "yes" ]; then
-		firewall-cmd --quiet --permanent --zone=public --add-masquerade 
+		firewall-cmd --quiet --permanent --zone=public --add-masquerade
 	fi
 
 	firewall-cmd --reload
@@ -1102,11 +1130,11 @@ install_l2tp(){
 	echo "请设置预共享密钥:"
 	read -p "(默认密钥:${mypsk}):" tmppsk
 	[ ! -z ${tmppsk} ] && mypsk=${tmppsk}
-		
+
 	echo "请输入用户名:"
 	read -p "(默认用户名:${username}):" tmpusername
 	[ ! -z ${tmpusername} ] && username=${tmpusername}
-		
+
 	echo "请输入用户${username}的密码:"
 	read -p "(默认密码:${password}):" tmppassword
 	[ ! -z ${tmppassword} ] && password=${tmppassword}
@@ -1125,7 +1153,7 @@ install_l2tp(){
 	yum install libreswan xl2tpd -q -y
 	sysctl -p
 	systemctl start ipsec
-	systemctl start xl2tpd	
+	systemctl start xl2tpd
 	systemctl enable ipsec
 	systemctl enable xl2tpd
 	systemctl -a | grep ipsec
@@ -1285,7 +1313,7 @@ install_v2ray(){
 		case "$input" in
 			y|Y)
 				echo "#######################################################################"
-				echo ""       
+				echo ""
 				check_port
 				echo "#######################################################################"
 				echo ""
@@ -1593,7 +1621,7 @@ install_kcptun(){
 
 	local install_dir='/usr/local/kcptun'
 	local log_dir='/var/log/kcptun'
-	local jq_bin="${install_dir}/bin/jq"	
+	local jq_bin="${install_dir}/bin/jq"
 	local d_key=`randpasswd`
 	local current_instance_id=
 	local run_user='kcptun'
@@ -1613,7 +1641,7 @@ install_kcptun(){
 			请设置 SNMP 记录间隔时间 snmpperiod
 			EOF
 
-			read -p "(默认: ${snmpperiod}): " input		
+			read -p "(默认: ${snmpperiod}): " input
 			if [ -n "$input" ]; then
 				if ! is_number "$input" || [ $input -lt 0 ]; then
 					echo "输入有误, 请输入大于等于0的数字!"
@@ -3315,7 +3343,7 @@ clearsystem(){
 	if [ -e "gogogo.sh" ]; then
 		mv gogogo.sh /usr/local/bin/gogogo
 	fi
-	
+
 	yum autoremove -q -y
 	yum makecache -q
 	yum-complete-transaction --cleanup-only -q -y
@@ -3374,8 +3402,8 @@ finally(){
 	echo "请保存好以下配置："
 	echo ""
 	echo "可以使用ssh登陆系统的用户:"
-	echo -e "新用户名:\033[41;30m${newusername}\033[0m" 
-	echo -e "新用户密码:\033[41;30m${newuserpasswd}\033[0m" 
+	echo -e "新用户名:\033[41;30m${newusername}\033[0m"
+	echo -e "新用户密码:\033[41;30m${newuserpasswd}\033[0m"
 	echo -e "root密码:\033[41;30m${newrootpasswd}\033[0m"
 	echo ""
 	echo "Shadowsocks的相关配置:"
