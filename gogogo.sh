@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.6
+SHELL_VERSION=2.1.7
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
