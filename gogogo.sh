@@ -3642,13 +3642,7 @@ echo ""
 echo "#######################################################################"
 echo ""
 
-action=$1
-
-if [ -z ${action} ] && [ "`basename $0`" = "gogogo" ]; then
-    action="-i"
-fi
-
-case ${action} in
+case $action in
 	-i|--install)
 		install
 		;;
@@ -3665,6 +3659,6 @@ case ${action} in
 		echo "		 `basename $0` -h,--help		Print this help information"
 		;;
 	*)
-		echo "Usage: `basename $0` [-i,--install|-u,--update|-r,--remove|-h,--help]" && exit
+		echo "Usage: `basename $0` [option] (-i,--install|-u,--update|-r,--remove|-h,--help)" && exit
 		;;
 esac
