@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=3.0
-IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
+SHELL_VERSION=3.1
+IP=$(curl -s ipinfo.io | sed -n 2p | awk -F \" '{print $4}')
 
 rootness(){
 
@@ -3307,6 +3307,66 @@ install_dnscrypt(){
 	any_key_to_continue
 }
 
+install_pentest-tools(){
+
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装渗透工具"
+	echo ""
+	echo "#######################################################################"
+	easy_install shodan
+	git clone -q https://github.com/lijiejie/subDomainsBrute.git /usr/src/pentest/subDomainsBrute
+	git clone -q https://github.com/urbanadventurer/WhatWeb.git /usr/src/pentest/WhatWeb
+	git clone -q https://github.com/gelim/censys.git /usr/src/pentest/censys
+	git clone -q https://github.com/Xyntax/FileSensor /usr/src/pentest/FileSensor
+	git clone -q https://github.com/Xyntax/BingC.git /usr/src/pentest/BingC
+	git clone -q https://github.com/TheRook/subbrute.git /usr/src/pentest/subbrute
+	git clone -q https://github.com/n4xh4ck5/N4xD0rk.git /usr/src/pentest/N4xD0rk
+	git clone -q https://github.com/TheRook/subbrute.git /usr/src/pentest/subbrute
+	git clone -q https://github.com/n4xh4ck5/N4xD0rk.git /usr/src/pentest/N4xD0rk
+	git clone -q https://github.com/maurosoria/dirsearch.git /usr/src/pentest/dirsearch
+	git clone -q https://github.com/stanislav-web/OpenDoor.git /usr/src/pentest/OpenDoor
+	git clone -q https://github.com/ekultek/whatwaf.git /usr/src/pentest/whatwaf
+	git clone -q https://github.com/aboul3la/Sublist3r.git /usr/src/pentest/Sublist3r
+	git clone -q https://github.com/laramies/theHarvester.git /usr/src/pentest/theHarvester
+	git clone -q https://github.com/appsecco/bugcrowd-levelup-subdomain-enumeration.git /usr/src/pentest/bugcrowd
+	git clone -q https://github.com/darkoperator/dnsrecon /usr/src/pentest/dnsrecon
+	git clone -q --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev /usr/src/pentest/sqlmap-dev
+
+	if [ -e "/root/.zshrc" ];then
+		cat >> /root/.zshrc<<-EOF
+		alias theharvester="python /usr/src/pentest/theHarvester/theHarvester.py -b all -l 1000 -h -d"
+		alias subDomainsBrute="python /usr/src/pentest/subDomainsBrute/subDomainsBrute.py"
+		alias censys="python /usr/src/pentest/censys/censys_io.py"
+		alias censys="python /usr/src/pentest/censys/censys_io.py"
+		alias filesensor="python3 /usr/src/pentest/FileSensor/filesensor.py"
+		alias bingc="python /usr/src/pentest/BingC/bingC.py"
+		alias reverseip="python /usr/src/pentest/ReverseIP/reverseip.py"
+		alias sqlmap="python /usr/src/pentest/sqlmap-dev/sqlmap.py"
+		alias cdnfinder="docker run -it turbobytes/cdnfinder cdnfindercli --phantomjsbin="/bin/phantomjs" --host"
+		alias subdns="python /usr/src/pentest/subbrute/subbrute.py -p"
+		alias sublist3r="python /usr/src/pentest/Sublist3r/sublist3r.py -v -d"
+		alias n4xd0rk="python /usr/src/pentest/N4xD0rk/n4xd0rk.py -n 100 -t"
+		alias anubis="anubis -t -ip --with-nmap -r -d"
+		alias whatweb="ruby /usr/src/pentest/WhatWeb/whatweb -v"
+		alias dirsearch="python3  /usr/src/pentest/dirsearch/dirsearch.py -u"
+		alias wafw00f="wafw00f -r -a -v"
+		alias theharvester="python /usr/src/pentest/theHarvester/theHarvester.py"
+		alias dnsrecon="python3 /usr/src/pentest/dnsrecon/dnsrecon.py -D /usr/src/pentest/dnsrecon/subdomains-top1mil-20000.txt -t brt"
+		EOF
+		source /root/.zshrc
+	fi
+
+	echo "#######################################################################"
+	echo ""
+	echo "安装完毕!工具路径为/usr/src/pentest/"
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
+}
+
 clearsystem(){
 
 	clear
@@ -3354,6 +3414,11 @@ update(){
 
 	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/gogogo.sh
 	chmod +x gogogo.sh
+
+	if [ -e "gogogo.sh" ]; then
+		rm -rf /usr/local/bin/gogogo
+	fi
+
 	mv -f gogogo.sh /usr/local/bin/gogogo
 }
 
@@ -3383,6 +3448,7 @@ install_all(){
 	install_kcptun
 	install_dnscrypt
 	install_aide
+	install_pentest-tools
 	clearsystem
 	finally
 }
@@ -3556,6 +3622,7 @@ mainmenu(){
 	echo "(14) 安装dnscrypt"
 	echo "(15) 安装pptp"
 	echo "(16) 安装aide"
+	echo "(17) 安装pentest tools"
 	echo ""
 	echo "#######################################################################"
 
@@ -3627,6 +3694,10 @@ mainmenu(){
 			install_aide
 			mainmenu
 			;;
+		17)
+			install_pentest-tools
+			mainmenu
+			;;
 		*)
 			install_all
 			mainmenu
@@ -3634,35 +3705,40 @@ mainmenu(){
 	esac
 }
 
-clear
-echo "#######################################################################"
-echo ""
-echo "GO GO GO v$SHELL_VERSION ..."
-echo ""
-echo "#######################################################################"
-echo ""
+main(){
 
-action=$1
-if [ -z ${action} ]; then
-    action=install
-fi
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "GO GO GO v$SHELL_VERSION ..."
+	echo ""
+	echo "#######################################################################"
+	echo ""
 
-case "$action" in
-	install)
-		install
-		;;
-	-u|--update)
-		update
-		;;
-	-r|--remove)
-		remove
-		;;
-	-h|--help)
-		echo "Usage: `basename $0` -u,--update		Update this script"
-		echo "		 `basename $0` -r,--remove		Remove this script"
-		echo "		 `basename $0` -h,--help		Print this help information"
-		;;
-	*)
-		echo "Usage: `basename $0` [option] (-u,--update|-r,--remove|-h,--help)" && exit
-		;;
-esac
+	action=$1
+	if [ -z ${action} ]; then
+	    action=install
+	fi
+
+	case "$action" in
+		install)
+			install
+			;;
+		-u|--update)
+			update
+			;;
+		-r|--remove)
+			remove
+			;;
+		-h|--help)
+			echo "Usage: `basename $0` -u,--update		Update this script"
+			echo "		 `basename $0` -r,--remove		Remove this script"
+			echo "		 `basename $0` -h,--help		Print this help information"
+			;;
+		*)
+			echo "Usage: `basename $0` [option] (-u,--update|-r,--remove|-h,--help)" && exit
+			;;
+	esac
+}
+
+main
