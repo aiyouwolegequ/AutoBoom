@@ -3644,7 +3644,7 @@ echo ""
 
 action=$1
 
-if [ -z ${action} ] && [ "`basename $0`" eq "gogogo" ]; then
+if [ -z ${action} ] && [ "`basename $0`" = "gogogo" ]; then
     action="-i"
 fi
 
