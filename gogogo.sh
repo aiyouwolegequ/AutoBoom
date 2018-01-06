@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.9
+SHELL_VERSION=2.1.10
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -997,14 +997,14 @@ install_shadowsocks(){
 
 		cat > /etc/shadowsocks-libev/config.json<<-EOF
 		{
-		    "server":"0.0.0.0",
-		    "server_port":"${listen_port}",
-		    "local_port":1080,
-		    "local_address":"127.0.0.1",
-		    "password":"${sspasswd}",
-		    "nameserver": "8.8.8.8",
-		    "timeout":"600",
-		    "method":"aes-256-cfb"
+			"server":"0.0.0.0",
+			"server_port":"${listen_port}",
+			"local_port":1080,
+			"local_address":"127.0.0.1",
+			"password":"${sspasswd}",
+			"nameserver": "8.8.8.8",
+			"timeout":"600",
+			"method":"aes-256-cfb"
 		}
 		EOF
 
@@ -1187,34 +1187,34 @@ install_l2tp(){
 	version 2.0
 
 	config setup
-	    protostack=netkey
-	    nhelpers=0
-	    uniqueids=no
-	    interfaces=%defaultroute
-	    virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!${iprange}.0/24
+		protostack=netkey
+		nhelpers=0
+		uniqueids=no
+		interfaces=%defaultroute
+		virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!${iprange}.0/24
 
 	conn l2tp-psk
-	    rightsubnet=vhost:%priv
-	    also=l2tp-psk-nonat
+		rightsubnet=vhost:%priv
+		also=l2tp-psk-nonat
 
 	conn l2tp-psk-nonat
-	    authby=secret
-	    pfs=no
-	    auto=add
-	    keyingtries=3
-	    rekey=no
-	    ikelifetime=8h
-	    keylife=1h
-	    type=transport
-	    left=%defaultroute
-	    leftid=${IP}
-	    leftprotoport=17/1701
-	    right=%any
-	    rightprotoport=17/%any
-	    dpddelay=40
-	    dpdtimeout=130
-	    dpdaction=clear
-	    sha2-truncbug=yes
+		authby=secret
+		pfs=no
+		auto=add
+		keyingtries=3
+		rekey=no
+		ikelifetime=8h
+		keylife=1h
+		type=transport
+		left=%defaultroute
+		leftid=${IP}
+		leftprotoport=17/1701
+		right=%any
+		rightprotoport=17/%any
+		dpddelay=40
+		dpdtimeout=130
+		dpdaction=clear
+		sha2-truncbug=yes
 	EOF
 
 	cat > /etc/ipsec.secrets<<-EOF
@@ -3356,6 +3356,10 @@ update(){
 	chmod +x gogogo.sh
 	mv -f gogogo.sh /usr/local/bin/gogogo
 }
+remove(){
+
+	rm -rf /usr/local/bin/gogogo
+}
 
 install_all(){
 
@@ -3636,23 +3640,24 @@ echo "GO GO GO v$SHELL_VERSION ..."
 echo ""
 echo "#######################################################################"
 echo ""
-action=$1
-if [ -z ${action} ] && [ "`basename $0`" != "gogogo" ]; then
-    action=install
-fi
 
 case ${action} in
-    install)
-        install
-        ;;
-    -u|--update)
-        update
-        ;;
-    -h|--help)
-        echo "Usage: `basename $0` -u,--update   update script"
-        echo "       `basename $0` -h,--help   Print this help information"
-        ;;
-    *)
-        echo "Usage: `basename $0` [-u,--update|-h,--help]" && exit
-        ;;
+	-i|--install)
+		install
+		;;
+	-u|--update)
+		update
+		;;
+	-r|--remove)
+		remove
+		;;
+	-h|--help)
+		echo "Usage: `basename $0` -i,--install		Use this script"
+		echo "		 `basename $0` -u,--update		Update this script"
+		echo "		 `basename $0` -r,--remove		Remove this script"
+		echo "		 `basename $0` -h,--help		Print this help information"
+		;;
+	*)
+		echo "Usage: `basename $0` [-i,--install|-u,--update|-r,--remove|-h,--help]" && exit
+		;;
 esac
