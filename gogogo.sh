@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.11
+SHELL_VERSION=3.0
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -3642,8 +3642,13 @@ echo ""
 echo "#######################################################################"
 echo ""
 
-case $action in
-	-i|--install)
+action=$1
+if [ -z ${action} ]; then
+    action=install
+fi
+
+case "$action" in
+	install)
 		install
 		;;
 	-u|--update)
@@ -3653,12 +3658,11 @@ case $action in
 		remove
 		;;
 	-h|--help)
-		echo "Usage: `basename $0` -i,--install		Use this script"
-		echo "		 `basename $0` -u,--update		Update this script"
+		echo "Usage: `basename $0` -u,--update		Update this script"
 		echo "		 `basename $0` -r,--remove		Remove this script"
 		echo "		 `basename $0` -h,--help		Print this help information"
 		;;
 	*)
-		echo "Usage: `basename $0` [option] (-i,--install|-u,--update|-r,--remove|-h,--help)" && exit
+		echo "Usage: `basename $0` [option] (-u,--update|-r,--remove|-h,--help)" && exit
 		;;
 esac
