@@ -1,8 +1,9 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.8
+SHELL_VERSION=2.1.9
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
+cur_dir=`pwd`
 
 rootness(){
 
@@ -3340,6 +3341,24 @@ clearsystem(){
 	auto_continue
 }
 
+install(){
+
+	cp -f ${cur_dir}/`basename $0` /usr/local/bin/gogogo
+	rootness
+	disable_selinux
+	set_sysctl
+	get_os_info
+	pre_install
+	mainmenu
+}
+
+update(){
+
+	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/gogogo.sh
+	chmod +x gogogo.sh
+	mv -f gogogo.sh /usr/local/bin/gogogo
+}
+
 install_all(){
 
 	clear
@@ -3619,9 +3638,23 @@ echo "GO GO GO v$SHELL_VERSION ..."
 echo ""
 echo "#######################################################################"
 echo ""
-rootness
-disable_selinux
-set_sysctl
-get_os_info
-pre_install
-mainmenu
+action=$1
+if [ -z ${action} ] && [ "`basename $0`" != "gogogo" ]; then
+    action=install
+fi
+
+case ${action} in
+    install)
+        install
+        ;;
+    -u|--update)
+        update
+        ;;
+    -h|--help)
+        echo "Usage: `basename $0` -u,--update   update script"
+        echo "       `basename $0` -h,--help   Print this help information"
+        ;;
+    *)
+        echo "Usage: `basename $0` [-u,--update|-h,--help]" && exit
+        ;;
+esac
