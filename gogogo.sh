@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.7
+SHELL_VERSION=2.1.8
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -302,13 +302,20 @@ pre_install(){
 	yum makecache -q
 	rm -f /var/run/yum.pid
 
-	yum install gcc gettext swig autoconf libtool python-setuptools automake tree pcre-devel psmisc curl unzip mlocate lsof sysstat asciidoc xmlto c-ares-devel python-pip libev-devel m2crypto libtool-ltdl-devel gawk tar policycoreutils-python gcc-c++ glibc-static libstdc++-static wget iproute net-tools bind-utils finger vim git make ppp -q -y
+	yum install asciidoc autoconf automake bind-utils bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel pcre-devel policycoreutils-python ppp psmisc python34-devel python-devel python-pip python-setuptools readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib-devel -q -y
 	ldconfig
-	easy_install pip
-	pip install --upgrade pip -q
+	wget https://bootstrap.pypa.io/get-pip.py
+	python get-pip.py
+	python3 get-pip.py
+	python -m pip install -U pip -q
+	python -m pip install -U distribute -q
+	python3 -m pip install --upgrade pip -q
+	python -m pip install pygments dnspython gevent wafw00f censys selenium BeautifulSoup4 json2html tabulate configparser parse wfuzz feedparser greenlet -q
+	python3 -m pip install scrapy docopt twisted lxml parsel w3lib cryptography pyopenssl anubis-netsec plecost json2html tabulate -q
 	updatedb
 	locate inittab
-
+	rm -rf get-pip.py
+	 
 	if [ ! -f "/usr/local/lib/libsodium.so" ];then
 		wget -q --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
 		tar zxvf libsodium.tar.gz
@@ -896,6 +903,11 @@ install_zsh(){
 			export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 			alias vizsh="vim ~/.zshrc"
 			alias sourcezsh="source ~/.zshrc"
+			alias cat="pygmentize -g"
+			alias py="python"
+			alias pip="python -m pip"
+			alias py3="python3"
+			alias pip3="python3 -m pip"
 			EOF
 
 			TEST_CURRENT_SHELL=$(expr "$SHELL" : '.*/\(.*\)')
@@ -946,8 +958,6 @@ install_shadowsocks(){
 	echo ""
 	sspasswd=`randpasswd`
 	local listen_port=999
-	pip install greenlet -q
-	pip install gevent -q
 	read -p "默认设置ss端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
 	case "$input" in
 		y|Y)
