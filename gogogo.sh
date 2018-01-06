@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=2.1.10
+SHELL_VERSION=2.1.11
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F\" '{print $4}')
 
 rootness(){
@@ -3356,6 +3356,7 @@ update(){
 	chmod +x gogogo.sh
 	mv -f gogogo.sh /usr/local/bin/gogogo
 }
+
 remove(){
 
 	rm -rf /usr/local/bin/gogogo
@@ -3640,6 +3641,12 @@ echo "GO GO GO v$SHELL_VERSION ..."
 echo ""
 echo "#######################################################################"
 echo ""
+
+action=$1
+
+if [ -z ${action} ] && [ "`basename $0`" eq "gogogo" ]; then
+    action="-i"
+fi
 
 case ${action} in
 	-i|--install)
