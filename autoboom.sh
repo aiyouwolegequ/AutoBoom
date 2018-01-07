@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=1.2
+SHELL_VERSION=1.3
 
 rootness(){
 
@@ -3448,7 +3448,7 @@ install(){
 
 update(){
 
-	echo Check for update!!!
+	echo Check for update...
 	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
 	chmod +x autoboom.sh
 	version=`grep SHELL_VERSION -m1 autoboom.sh | awk -F = '{print $2}'`
@@ -3456,14 +3456,14 @@ update(){
 	if [ -f "/var/autoboom/version.conf" ]; then
 		local pre_version=`cat /var/autoboom/version.conf`
 		if [ "$pre_version" = "$version" ]; then
-			echo no update is available - -#
+			echo "no update is available - -#"
 		else
 			if [ -f "/usr/local/bin/autoboom" ]; then
 				rm -rf /usr/local/bin/autoboom
 			fi
 
 			mv -f autoboom.sh /usr/local/bin/autoboom
-			echo update success ^_^
+			echo "update success ^_^"
 		fi
 	else
 		if [ -f ./autoboom.sh ]; then
