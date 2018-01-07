@@ -20,12 +20,12 @@ list_users(){
 
 restart(){
 
-    systemctl restart shadowsocks
+    systemctl restart shadowsocks-libev.service
 }
 
 status(){
 
-    systemctl status shadowsocks
+    systemctl status shadowsocks-libev.service -l
 }
 
 action=$1
@@ -47,6 +47,6 @@ case ${action} in
         status
         ;;
     *)
-        echo "Usage: `basename $0` [-l,--list|-s|--status|-r,--restart]" && exit
+        echo "Usage: `basename $0` [-l,--list|-s,--status|-r,--restart]" && exit
         ;;
 esac
