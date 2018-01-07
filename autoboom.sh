@@ -251,7 +251,7 @@ pre_check(){
 	if [ -f "/var/autoboom/version.conf" ]; then
 		local pre_version=`cat /var/autoboom/version.conf`
 		if [ "$pre_version" = "$SHELL_VERSION" ]; then
-			continue
+			set_sysctl 2>&1
 		else
 			pre_install
 		fi
@@ -360,6 +360,7 @@ pre_install(){
 	fi
 
 	rm -rf libsodium* mbedtls* libevent*
+	mkdir -p /var/autoboom/
 	touch /var/autoboom/version.conf
 	echo "$SHELL_VERSION" > /var/autoboom/version.conf
 	clear
@@ -3393,8 +3394,8 @@ clearsystem(){
 	echo "#######################################################################"
 	cd
 
-	if [ -e "autoboom.sh" ]; then
-		mv autoboom.sh /usr/local/bin/autoboom
+	if [ -f ./autoboom.sh ]; then
+		rm -rf ./autoboom.sh
 	fi
 
 	yum autoremove -q -y
@@ -3436,26 +3437,28 @@ usage() {
 install(){
 
 	pre_check 2>&1
-	set_sysctl 2>&1
 	mainmenu
 }
 
 update(){
 
 	echo Check for update!!!
-	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
-	chmod +x autoboom.sh
 
-	if [ -f "/var/autoboom/verson.conf" ]; then
-		local pre_version=`cat /var/autoboom/verson.conf`
-		if [ "pre_version" -eq "$SHELL_VERSION" ]; then
+	if [ -f ./autoboom.sh ]; then
+		rm -rf ./autoboom.sh
+	fi
+
+	if [ -f "/var/autoboom/version.conf" ]; then
+		local pre_version=`cat /var/autoboom/version.conf`
+		if [ "$pre_version" = "$SHELL_VERSION" ]; then
 			echo no update is available - -#
-			rm -rf autoboom.sh
 		else
 			if [ -f "/usr/local/bin/autoboom" ]; then
 				rm -rf /usr/local/bin/autoboom
 			fi
 
+			wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
+			chmod +x autoboom.sh
 			mv -f autoboom.sh /usr/local/bin/autoboom
 			echo update success ^_^
 		fi
@@ -3466,7 +3469,7 @@ update(){
 
 remove(){
 
-	rm -rf /usr/local/bin/autoboom /var/autoboom/verson.conf
+	rm -rf /usr/local/bin/autoboom /var/autoboom/version.conf
 }
 
 version(){
