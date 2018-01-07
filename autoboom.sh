@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=1.0
+SHELL_VERSION=1.1
 
 rootness(){
 
@@ -250,7 +250,7 @@ pre_check(){
 
 	if [ -f "/var/autoboom/version.conf" ]; then
 		local pre_version=`cat /var/autoboom/version.conf`
-		if [ "pre_version" -eq "$SHELL_VERSION" ]; then
+		if [ "$pre_version" = "$SHELL_VERSION" ]; then
 			continue
 		else
 			pre_install
