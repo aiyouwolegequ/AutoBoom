@@ -47,7 +47,8 @@ L2TP 相关命令:
 l2tp -l 列出用户        
 l2tp -a 新增用户        
 l2tp -d 删除用户        
-l2tp -m 修改用户密码        
+l2tp -m 修改用户密码      
+l2tp -r 重启服务             
 
 Shadowsocks 相关命令:          
 shadowsocks -s 查看状态        
