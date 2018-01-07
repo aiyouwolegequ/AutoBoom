@@ -63,24 +63,26 @@ get_os_info(){
 	local lbit=$(getconf LONG_BIT)
 	local host=$(hostname )
 	local kern=$(uname -r)
+	mkdir -p /var/autoboom/log
+	touch /var/autoboom/log/os.log
 	echo ""
-	echo "################ 系统信息 ################" >os.log
-	echo "" >>os.log
-	echo "CPU 型号	: ${cname}" >>os.log
-	echo "CPU 核心数	: ${cores}" >>os.log
-	echo "CPU 频率	: ${freq} MHz" >>os.log
-	echo "内存大小	: ${tram} MB" >>os.log
-	echo "缓存大小	: ${swap} MB" >>os.log
-	echo "开机运行时间	: ${up}" >>os.log
-	echo "平均负载	: ${load}" >>os.log
-	echo "系统		: ${opsy}" >>os.log
-	echo "位数		: ${arch} (${lbit} Bit)" >>os.log
-	echo "内核		: ${kern}" >>os.log
-	echo "主机名		: ${host}" >>os.log
-	echo "IP地址		: ${IP}" >>os.log
-	echo "" >>os.log
-	echo "#########################################" >>os.log
-	cat os.log
+	echo "################ 系统信息 ################" >/var/autoboom/log/os.log
+	echo "" >>/var/autoboom/log/os.log
+	echo "CPU 型号	: ${cname}" >>/var/autoboom/log/os.log
+	echo "CPU 核心数	: ${cores}" >>/var/autoboom/log/os.log
+	echo "CPU 频率	: ${freq} MHz" >>/var/autoboom/log/os.log
+	echo "内存大小	: ${tram} MB" >>/var/autoboom/log/os.log
+	echo "缓存大小	: ${swap} MB" >>/var/autoboom/log/os.log
+	echo "开机运行时间	: ${up}" >>/var/autoboom/log/os.log
+	echo "平均负载	: ${load}" >>/var/autoboom/log/os.log
+	echo "系统		: ${opsy}" >>/var/autoboom/log/os.log
+	echo "位数		: ${arch} (${lbit} Bit)" >>/var/autoboom/log/os.log
+	echo "内核		: ${kern}" >>/var/autoboom/log/os.log
+	echo "主机名		: ${host}" >>/var/autoboom/log/os.log
+	echo "IP地址		: ${IP}" >>/var/autoboom/log/os.log
+	echo "" >>/var/autoboom/log/os.log
+	echo "#########################################" >>/var/autoboom/log/os.log
+	cat /var/autoboom/log/os.log
 	echo ""
 }
 
@@ -720,14 +722,14 @@ install_ckrootkit_rkhunter(){
 		clear
 		echo "#######################################################################"
 		echo ""
-		echo "正在检测系统，请耐心等待!日志保存在chkrootkit.log和rkhunter.log"
+		echo "正在检测系统，请耐心等待!日志保存在/var/autoboom/log/chkrootkit.log和rkhunter.log"
 		echo ""
 		echo "#######################################################################"
 		echo ""
 		rkhunter --check --sk | grep Warning
-		chkrootkit > chkrootkit.log
-		cat chkrootkit.log| grep INFECTED
-		mv /var/log/rkhunter/rkhunter.log ./
+		chkrootkit > /var/autoboom/log/chkrootkit.log
+		cat /var/autoboom/log/chkrootkit.log| grep INFECTED
+		mv /var/log/rkhunter/rkhunter.log /var/autoboom/log/
 		cd
 		echo "#######################################################################"
 		echo ""
@@ -846,13 +848,13 @@ install_lynis(){
 		lynis update info
 		echo "#######################################################################"
 		echo ""
-		echo "正在检测系统，请耐心等待!日志保存在lynis.log"
+		echo "正在检测系统，请耐心等待!"
 		echo ""
 		echo "#######################################################################"
-		lynis audit system | tee lynis.log
+		lynis audit system | tee /var/autoboom/log/lynis.log
 		echo "#######################################################################"
 		echo ""
-		echo "lynis安装完成,日志保存在lynis.log."
+		echo "lynis安装完成,日志保存在/var/autoboom/log/lynis.log."
 		echo ""
 		echo "#######################################################################"
 		echo ""
@@ -3134,15 +3136,15 @@ install_kcptun(){
 	set_firewall
 	start_supervisor
 	enable_supervisor
-	show_current_instance_info > kcptun.log
+	show_current_instance_info > /var/autoboom/log/kcptun.log
 	clear
 	echo "#######################################################################"
 	echo "请保存好Kcptun配置!"
 	echo ""
-	sed -n '6,18p' kcptun.log
+	sed -n '6,18p' /var/autoboom/log/kcptun.log
 	echo "#######################################################################"
 	echo ""
-	echo "Kcptun安装完毕."
+	echo "Kcptun安装完毕,日志保存在/var/autoboom/log/kcptun.log."
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3178,8 +3180,8 @@ install_dnscrypt(){
 	rm -rf dnscrypt*
 	mkdir ~/.dns
 	cd ~/.dns
-	dnscrypt-wrapper --gen-provider-keypair > dns.log
-	pub=$(cat dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
+	dnscrypt-wrapper --gen-provider-keypair > /var/autoboom/log/dns.log
+	pub=$(cat /var/autoboom/log/dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
 	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=1.key
 	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=1.key --provider-cert-file=1.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
 	firewall-cmd --quiet --permanent --zone=public --add-port=5453/tcp
@@ -3311,7 +3313,7 @@ install_dnscrypt(){
 	systemctl restart dnsmasq
 	echo "#######################################################################"
 	echo "如需使用dnscrypt可在电脑上使用以下命令:"
-	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5453 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee dnscrypt.log
+	echo -e "\033[41;30mdnscrypt-proxy --local-address=127.0.0.1:53 \ \n --provider-key=$pub \ \n --resolver-address=$IP:5453 \ \n --provider-name=2.dnscrypt-cert.${dnscrypt}.org -d\033[0m" |tee /var/autoboom/log/dnscrypt.log
 	echo "或者直接设置${IP}为DNS地址"
 	echo "#######################################################################"
 	echo ""
