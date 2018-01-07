@@ -248,8 +248,8 @@ check_IP(){
 
 pre_check(){
 
-	if [ -f "/var/autoboom/verson.conf" ]; then
-		local pre_version=`cat /var/autoboom/verson.conf`
+	if [ -f "/var/autoboom/version.conf" ]; then
+		local pre_version=`cat /var/autoboom/version.conf`
 		if [ "pre_version" -eq "$SHELL_VERSION" ]; then
 			continue
 		else
@@ -360,7 +360,8 @@ pre_install(){
 	fi
 
 	rm -rf libsodium* mbedtls* libevent*
-	echo "$SHELL_VERSION" > /var/autoboom/verson.conf
+	touch /var/autoboom/version.conf
+	echo "$SHELL_VERSION" > /var/autoboom/version.conf
 	clear
 	echo "#######################################################################"
 	echo ""
