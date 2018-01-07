@@ -3449,22 +3449,22 @@ install(){
 update(){
 
 	echo Check for update!!!
-
+	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
+	chmod +x autoboom.sh
+	version=`grep SHELL_VERSION -m1 autoboom.sh | awk -F = '{print $2}'`
 	if [ -f ./autoboom.sh ]; then
 		rm -rf ./autoboom.sh
 	fi
 
 	if [ -f "/var/autoboom/version.conf" ]; then
 		local pre_version=`cat /var/autoboom/version.conf`
-		if [ "$pre_version" = "$SHELL_VERSION" ]; then
+		if [ "$pre_version" = "$version" ]; then
 			echo no update is available - -#
 		else
 			if [ -f "/usr/local/bin/autoboom" ]; then
 				rm -rf /usr/local/bin/autoboom
 			fi
 
-			wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
-			chmod +x autoboom.sh
 			mv -f autoboom.sh /usr/local/bin/autoboom
 			echo update success ^_^
 		fi
