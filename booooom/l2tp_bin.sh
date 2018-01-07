@@ -105,6 +105,11 @@ mod_user(){
     echo "Username ${user}'s password has been changed."
 }
 
+restart(){
+
+    systemctl restart ipsec
+    systemctl restart xl2tpd
+}
 action=$1
 if [ -z ${action} ] && [ "`basename $0`" != "l2tp" ]; then
     action=install
@@ -126,14 +131,18 @@ case ${action} in
     -m|--mod)
         mod_user
         ;;
+    -r|--restart)
+        restart
+        ;;
     -h|--help)
-        echo "Usage: `basename $0` -l,--list   List all users"
-        echo "       `basename $0` -a,--add    Add a user"
-        echo "       `basename $0` -d,--del    Delete a user"
-        echo "       `basename $0` -m,--mod    Modify a user password"
-        echo "       `basename $0` -h,--help   Print this help information"
+        echo "Usage: `basename $0` -l,--list        List all users"
+        echo "       `basename $0` -a,--add         Add a user"
+        echo "       `basename $0` -d,--del         Delete a user"
+        echo "       `basename $0` -m,--mod         Modify a user password"
+        echo "       `basename $0` -r,--restart     Restart L2TP Services"
+        echo "       `basename $0` -h,--help        Print this help information"
         ;;
     *)
-        echo "Usage: `basename $0` [-l,--list|-a,--add|-d,--del|-m,--mod|-h,--help]" && exit
+        echo "Usage: `basename $0` [-l,--list|-a,--add|-d,--del|-m,--mod|-r,--restart|-h,--help]" && exit
         ;;
 esac
