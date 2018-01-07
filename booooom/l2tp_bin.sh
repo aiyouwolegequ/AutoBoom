@@ -23,10 +23,12 @@ list_users(){
     fi
 
     local line="+-------------------------------------------+\n"
-    local string=%20s
+    local string=%1s
     printf "${line}|${string} |${string} |\n${line}" Username Password
     grep -v "^#" /etc/ppp/chap-secrets | awk '{printf "|'${string}' |'${string}' |\n", $1,$3}'
     printf ${line}
+    local PSK=`cat /etc/ipsec.secrets | awk -F\" '{print $2}'`
+    echo "|PSK     |$PSK" |
 }
 
 add_user(){
