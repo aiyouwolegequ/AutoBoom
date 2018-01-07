@@ -3464,6 +3464,7 @@ update(){
 
 			mv -f autoboom.sh /usr/local/bin/autoboom
 			echo "update success ^_^"
+			echo $version > /var/autoboom/version.conf
 		fi
 	else
 		if [ -f ./autoboom.sh ]; then
