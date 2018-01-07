@@ -3768,7 +3768,7 @@ main(){
 	echo "#######################################################################"
 	echo ""
 	echo "CentOS 7 服务器一键部署脚本"
-	echo "autoboom v$SHELL_VERSION ！！！ "
+	echo "autoboom v$SHELL_VERSION"
 	echo "Github: https://github.com/aiyouwolegequ/AutoBoom"
 	echo ""
 	echo "#######################################################################"
