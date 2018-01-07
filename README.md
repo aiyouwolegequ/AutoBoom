@@ -1,5 +1,5 @@
-wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
-sh autoboom.sh        
+wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh      
+sh autoboom.sh           
 
 (0) 退出        
 (1) 默认全部安装        
