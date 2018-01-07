@@ -1,7 +1,5 @@
-wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/CentOS_7-script/master/gogogo.sh              
-chmod +x gogogo.sh              
-mv -f gogogo.sh /usr/local/bin/gogogo              
-gogogo              
+wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh            
+sh autoboom.sh                 
               
 (0) 退出              
 (1) 默认全部安装              
@@ -20,6 +18,7 @@ gogogo
 (14) 安装dnscrypt              
 (15) 安装pptp              
 (16) 安装aide              
+(17) 安装pentest tools               
               
 Supervisor 相关命令:              
 service supervisord {start|stop|restart|status}              
