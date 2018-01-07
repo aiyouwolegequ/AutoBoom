@@ -49,6 +49,11 @@ l2tp -a 新增用户
 l2tp -d 删除用户        
 l2tp -m 修改用户密码        
 
+Shadowsocks 相关命令:          
+shadowsocks -s 查看状态        
+shadowsocks -r 重启服务        
+shadowsocks -l 查看配置        
+
 Kcptun 相关命令:        
 supervisorctl {start|stop|restart|status} kcptun        
 kcptun uninstall 卸载        

@@ -1066,6 +1066,10 @@ install_shadowsocks(){
 		systemctl start shadowsocks-libev.service
 		systemctl enable shadowsocks-libev.service
 		systemctl -a | grep shadowsocks
+		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/shadowsocks_bin.sh
+		chmod +x shadowsocks_bin.sh
+		./shadowsocks_bin.sh
+		rm -rf ./shadowsocks_bin.sh
 		echo "#######################################################################"
 		echo ""
 		echo "Shadowsocks安装完毕."
