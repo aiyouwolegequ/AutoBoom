@@ -1284,7 +1284,7 @@ install_l2tp(){
 	systemctl -a | grep ipsec
 	systemctl -a | grep xl2tpd
 	cd
-	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/l2tp_bin.sh
+	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/l2tp_bin.sh
 	chmod +x l2tp_bin.sh
 	./l2tp_bin.sh
 	rm -rf l2tp_bin.sh
@@ -1517,7 +1517,7 @@ install_supervisor(){
 
 		if command_exists systemctl; then
 			supervisor_startup_file='/lib/systemd/system/supervisord.service'
-			supervisor_startup_file_url="https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/supervisord.systemd"
+			supervisor_startup_file_url="https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/supervisord.systemd"
 			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
 			set -x
 			systemctl daemon-reload >/dev/null 2>&1
@@ -1595,9 +1595,9 @@ install_vlmcsd(){
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
-	wget -q --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsd.server
+	wget -q --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/vlmcsd.server
 	chmod 0755 /usr/local/bin/vlmcsd
-	wget -q --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/vlmcsdmulti-x64-musl-static
+	wget -q --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
 
 	cat > /usr/lib/systemd/system/vlmcsd.service<<-EOF
@@ -1778,7 +1778,7 @@ install_kcptun(){
 
 	show_current_instance_info(){
 
-		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/kcptun_bin.sh
+		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/kcptun_bin.sh
 		chmod +x kcptun_bin.sh
 		./kcptun_bin.sh
 		rm -rf kcptun_bin.sh
@@ -2116,7 +2116,7 @@ install_kcptun(){
 
 			case "$architecture" in
 				amd64|x86_64)
-					download_file "https://raw.githubusercontent.com/aiyouwolegequ/aiyouwolegequ/master/jq-linux64" "$jq_bin" "d8e36831c3c94bb58be34dd544f44a6c6cb88568"
+					download_file "https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/jq-linux64" "$jq_bin" "d8e36831c3c94bb58be34dd544f44a6c6cb88568"
 					;;
 			esac
 
