@@ -1408,14 +1408,6 @@ install_v2ray(){
 
 install_supervisor(){
 
-	clear
-	echo "#######################################################################"
-	echo ""
-	echo "开始安装Supervisor"
-	echo ""
-	echo "#######################################################################"
-	echo ""
-
 	verify_file(){
 
 		if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
@@ -1549,21 +1541,10 @@ install_supervisor(){
 		fi
 	}
 
-	if [ -z "/etc/supervisord.conf" ] && command_exists supervisord; then
+	command_exists(){
 
-		cat >&2 <<-EOF
-		检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
-		推荐你备份当前 Supervisor 配置后卸载原有版本
-		已安装的 Supervisor 配置文件路径为: /etc/supervisord.conf
-		通过本脚本安装的 Supervisor 配置文件路径为: /etc/supervisor/supervisord.conf
-		你可以使用以下命令来备份原有配置文件:
-
-		mv /etc/supervisord.conf /etc/supervisord.conf.bak
-		EOF
-
-		any_key_to_continue
-		mainmenu
-	fi
+		command -v "$@" >/dev/null 2>&1
+	}
 
 	if [ -n "/etc/supervisor/supervisord.conf" ]; then
 		easy_install -U supervisor
@@ -1576,22 +1557,7 @@ install_supervisor(){
 		supervisorctl update
 		supervisorctl reread
 		supervisorctl status
-		echo "#######################################################################"
-		echo ""
-		echo "Supervisor安装完毕."
-		echo ""
-		echo "#######################################################################"
-		echo ""
-	else
-		echo "#######################################################################"
-		echo ""
-		echo "Supervisor安装失败，请稍后再试.."
-		echo ""
-		echo "#######################################################################"
-		echo ""
 	fi
-
-	auto_continue
 }
 
 install_vlmcsd(){
