@@ -1,7 +1,8 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=1.5
+shell_version=v1.5
+pre_install_version=v1.0
 
 rootness(){
 
@@ -252,7 +253,7 @@ pre_check(){
 
 	if [ -f "/var/autoboom/version.conf" ]; then
 		local pre_version=`cat /var/autoboom/version.conf`
-		if [ "$pre_version" = "$SHELL_VERSION" ]; then
+		if [ "$pre_version" = "$shell_version" ]; then
 			set_sysctl 2>&1
 		else
 			pre_install
@@ -362,9 +363,7 @@ pre_install(){
 	fi
 
 	rm -rf libsodium* mbedtls* libevent*
-	mkdir -p /var/autoboom/
-	touch /var/autoboom/version.conf
-	echo "$SHELL_VERSION" > /var/autoboom/version.conf
+	pre_install_version
 	clear
 	echo "#######################################################################"
 	echo ""
@@ -3467,7 +3466,7 @@ update(){
 	echo Check for update...
 	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
 	chmod +x autoboom.sh
-	version=`grep SHELL_VERSION -m1 autoboom.sh | awk -F = '{print $2}'`
+	version=`grep shell_version -m1 autoboom.sh | awk -F = '{print $2}'`
 
 	if [ -f "/var/autoboom/version.conf" ]; then
 		local pre_version=`cat /var/autoboom/version.conf`
@@ -3497,7 +3496,7 @@ remove(){
 
 version(){
 
-	echo AutoBoom v$SHELL_VERSION
+	echo "AutoBoom $shell_version"
 }
 
 install_all(){
@@ -3785,7 +3784,7 @@ main(){
 	echo "#######################################################################"
 	echo ""
 	echo "CentOS 7 服务器一键部署脚本"
-	echo "autoboom v$SHELL_VERSION"
+	echo "autoboom $shell_version"
 	echo "Github: https://github.com/aiyouwolegequ/AutoBoom"
 	echo ""
 	echo "#######################################################################"
@@ -3827,6 +3826,13 @@ IP=$(curl -s ipinfo.io | sed -n 2p | awk -F \" '{print $4}')
 if [ ! -f "/usr/local/bin/autoboom" ]; then
 	mv -f autoboom.sh /usr/local/bin/autoboom
 	chmod +x /usr/local/bin/autoboom
+fi
+
+if [ !-f /var/autoboom/version.conf ]; then
+	mkdir -p /var/autoboom/
+	touch /var/autoboom/version.conf
+	echo "shell_version $shell_version" > /var/autoboom/version.conf
+	echo "pre_install_version $pre_install_version" >>/var/autoboom/version.conf
 fi
 
 action=${1:-"default"}
