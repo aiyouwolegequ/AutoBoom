@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v1.6
+shell_version=v1.7
 pre_install_version=v1.0
 
 rootness(){
@@ -253,9 +253,9 @@ pre_check(){
 
 	local pre_version=`cat /var/autoboom/version.conf | grep pre_install_version | awk '{print $2}'`
 
-	if [ -z "$pre_version"  ]; then
+	if [ -n "$pre_version"  ]; then
 		if [ "$pre_version" = "$pre_install_version" ]; then
-			set_sysctl 2>&1
+			set_sysctl
 		else
 			sed -i "s/pre_install_version $pre_version/pre_install_version $pre_install_version/g" /var/autoboom/version.conf
 			pre_install
@@ -1003,7 +1003,7 @@ install_shadowsocks(){
 
 	if [ -d "/root/shadowsocks-libev" ]; then
 		cd shadowsocks-libev
-		git submodule update --init --recursive
+		git submodule update --init --recursive -q
 		./autogen.sh
 		./configure --with-sodium-include=/usr/local/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
 		make && make install
