@@ -1220,39 +1220,39 @@ install_l2tp(){
 
 	chmod 640 /etc/firewalld/services/xl2tpd.xml
 
-	cat > /etc/ipsec.conf<<-EOF
-	version 2.0
+		cat > /etc/ipsec.conf<<-EOF
+		version 2.0
 
-	config setup
-		protostack=netkey
-		nhelpers=0
-		uniqueids=no
-		interfaces=%defaultroute
-		virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!${iprange}.0/24
+		config setup
+			protostack=netkey
+			nhelpers=0
+			uniqueids=no
+			interfaces=%defaultroute
+			virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!${iprange}.0/24
 
-	conn l2tp-psk
-		rightsubnet=vhost:%priv
-		also=l2tp-psk-nonat
+		conn l2tp-psk
+			rightsubnet=vhost:%priv
+			also=l2tp-psk-nonat
 
-	conn l2tp-psk-nonat
-		authby=secret
-		pfs=no
-		auto=add
-		keyingtries=3
-		rekey=no
-		ikelifetime=8h
-		keylife=1h
-		type=transport
-		left=%defaultroute
-		leftid=${IP}
-		leftprotoport=17/1701
-		right=%any
-		rightprotoport=17/%any
-		dpddelay=40
-		dpdtimeout=130
-		dpdaction=clear
-		sha2-truncbug=yes
-	EOF
+		conn l2tp-psk-nonat
+			authby=secret
+			pfs=no
+			auto=add
+			keyingtries=3
+			rekey=no
+			ikelifetime=8h
+			keylife=1h
+			type=transport
+			left=%defaultroute
+			leftid=${IP}
+			leftprotoport=17/1701
+			right=%any
+			rightprotoport=17/%any
+			dpddelay=40
+			dpdtimeout=130
+			dpdaction=clear
+			sha2-truncbug=yes
+		EOF
 
 	cat > /etc/ipsec.secrets<<-EOF
 	%any %any : PSK "${mypsk}"
