@@ -251,14 +251,12 @@ check_IP(){
 
 pre_check(){
 
-	if [ -f "/var/autoboom/version.conf" ]; then
-		local pre_version=`cat /var/autoboom/version.conf`
-		if [ "$pre_version" = "$shell_version" ]; then
-			set_sysctl 2>&1
-		else
-			pre_install
-		fi
+	local pre_version=`cat /var/autoboom/version.conf | grep pre_install_version | awk '{print $2}'`
+
+	if [ "$pre_version" = "$pre_install_version" ]; then
+		set_sysctl 2>&1
 	else
+		sed -i "s/pre_install_version $pre_version/pre_install_version $pre_install_version/g" /var/autoboom/version.conf
 		pre_install
 	fi
 }
@@ -363,7 +361,6 @@ pre_install(){
 	fi
 
 	rm -rf libsodium* mbedtls* libevent*
-	pre_install_version
 	clear
 	echo "#######################################################################"
 	echo ""
@@ -1223,34 +1220,34 @@ install_l2tp(){
 		version 2.0
 
 		config setup
-			protostack=netkey
-			nhelpers=0
-			uniqueids=no
-			interfaces=%defaultroute
-			virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!${iprange}.0/24
+		    protostack=netkey
+		    nhelpers=0
+		    uniqueids=no
+		    interfaces=%defaultroute
+		    virtual_private=%v4:10.0.0.0/8,%v4:192.168.0.0/16,%v4:172.16.0.0/12,%v4:!${iprange}.0/24
 
 		conn l2tp-psk
-			rightsubnet=vhost:%priv
-			also=l2tp-psk-nonat
+		    rightsubnet=vhost:%priv
+		    also=l2tp-psk-nonat
 
 		conn l2tp-psk-nonat
-			authby=secret
-			pfs=no
-			auto=add
-			keyingtries=3
-			rekey=no
-			ikelifetime=8h
-			keylife=1h
-			type=transport
-			left=%defaultroute
-			leftid=${IP}
-			leftprotoport=17/1701
-			right=%any
-			rightprotoport=17/%any
-			dpddelay=40
-			dpdtimeout=130
-			dpdaction=clear
-			sha2-truncbug=yes
+		    authby=secret
+		    pfs=no
+		    auto=add
+		    keyingtries=3
+		    rekey=no
+		    ikelifetime=8h
+		    keylife=1h
+		    type=transport
+		    left=%defaultroute
+		    leftid=${IP}
+		    leftprotoport=17/1701
+		    right=%any
+		    rightprotoport=17/%any
+		    dpddelay=40
+		    dpdtimeout=130
+		    dpdaction=clear
+		    sha2-truncbug=yes
 		EOF
 
 	cat > /etc/ipsec.secrets<<-EOF
@@ -3457,19 +3454,19 @@ usage() {
 
 install(){
 
-	pre_check 2>&1
+	pre_check
 	mainmenu
 }
 
 update(){
 
-	echo Check for update...
+	echo "Check for update..."
 	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
 	chmod +x autoboom.sh
-	version=`grep shell_version -m1 autoboom.sh | awk -F = '{print $2}'`
+	local version=`grep shell_version -m1 autoboom.sh | awk -F = '{print $2}'`
 
 	if [ -f "/var/autoboom/version.conf" ]; then
-		local pre_version=`cat /var/autoboom/version.conf`
+		local pre_version=`cat /var/autoboom/version.conf | grep shell_version | awk '{print $2}'`
 		if [ "$pre_version" = "$version" ]; then
 			echo "no update is available - -#"
 			rm -rf ./autoboom.sh
@@ -3480,12 +3477,9 @@ update(){
 
 			mv -f autoboom.sh /usr/local/bin/autoboom
 			echo "update success ^_^"
-			echo $version > /var/autoboom/version.conf
+			sed -i "s/shell_version $pre_version/shell_version $version/g" /var/autoboom/version.conf
 			rm -rf ./autoboom.sh
 		fi
-	else
-		rm -rf ./autoboom.sh
-		install
 	fi
 }
 
@@ -3828,11 +3822,10 @@ if [ ! -f "/usr/local/bin/autoboom" ]; then
 	chmod +x /usr/local/bin/autoboom
 fi
 
-if [ !-f /var/autoboom/version.conf ]; then
+if [ ! -f "/var/autoboom/version.conf" ]; then
 	mkdir -p /var/autoboom/
 	touch /var/autoboom/version.conf
 	echo "shell_version $shell_version" > /var/autoboom/version.conf
-	echo "pre_install_version $pre_install_version" >>/var/autoboom/version.conf
 fi
 
 action=${1:-"default"}
