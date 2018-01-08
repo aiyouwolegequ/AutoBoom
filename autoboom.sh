@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=1.4
+SHELL_VERSION=1.5
 
 rootness(){
 
@@ -1198,16 +1198,6 @@ install_l2tp(){
 	read -p "(默认密码:${password}):" tmppassword
 	[ ! -z ${tmppassword} ] && password=${tmppassword}
 
-	echo ""
-	echo "请保存好L2TP VPN的用户名密码密钥!"
-	echo -e "Server IP:\033[41;30m${IP}\033[0m"
-	echo "VPN Gateway IP:${iprange}.1"
-	echo "VPN Client IP:${iprange}.2-${iprange}.254"
-	echo -e "Username:\033[41;30m${username}\033[0m"
-	echo -e "Password:\033[41;30m${password}\033[0m"
-	echo -e "PSK:\033[41;30m${mypsk}\033[0m"
-	echo "#######################################################################"
-	echo ""
 	any_key_to_continue
 	yum install libreswan xl2tpd -q -y
 	sysctl -p
