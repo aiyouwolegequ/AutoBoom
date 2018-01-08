@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-SHELL_VERSION=1.3
+SHELL_VERSION=1.4
 
 rootness(){
 
@@ -1106,10 +1106,35 @@ install_pptp(){
 	pptpuser=`randusername`
 	pptppasswd=`randpasswd`
 	yum install pptpd -q -y
-	echo "localip 10.10.0.1" >> /etc/pptpd.conf
-	echo "remoteip 10.10.0.100-199" >> /etc/pptpd.conf
-	echo "ms-dns 8.8.8.8" >> /etc/ppp/options.pptpd
-	echo "ms-dns 8.8.4.4" >> /etc/ppp/options.pptpd
+	cp /etc/pptpd.conf /etc/pptpd.conf.bak
+
+	cat > /etc/pptpd.conf<<-EOF
+	option /etc/ppp/options.pptpd
+	#logwtmp
+	localip 10.0.10.1
+	remoteip 10.0.10.2-254
+	listen $IP
+	EOF
+
+	cp /etc/ppp/options.pptpd /etc/ppp/options.pptpd.bak
+
+	cat > /etc/ppp/options.pptpd<<-EOF
+	name pptpd
+	refuse-pap
+	refuse-chap
+	refuse-mschap
+	require-mschap-v2
+	require-mppe-128
+	proxyarp
+	lock
+	nobsdcomp
+	novj
+	novjccomp
+	nologfd
+	ms-dns 8.8.8.8
+	ms-dns 8.8.4.4
+	EOF
+
 	echo "${pptpuser} pptpd ${pptppasswd} *" >> /etc/ppp/chap-secrets
 
 	cat > /etc/firewalld/services/pptp.xml<<-EOF
@@ -1127,6 +1152,7 @@ install_pptp(){
 	fi
 
 	firewall-cmd --reload
+	modprobe ip_nat_pptp
 	systemctl start pptpd.service
 	systemctl enable pptpd.service
 	systemctl -a | grep pptpd
