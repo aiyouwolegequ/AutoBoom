@@ -3473,6 +3473,7 @@ update(){
 		local pre_version=`cat /var/autoboom/version.conf`
 		if [ "$pre_version" = "$version" ]; then
 			echo "no update is available - -#"
+			rm -rf ./autoboom.sh
 		else
 			if [ -f "/usr/local/bin/autoboom" ]; then
 				rm -rf /usr/local/bin/autoboom
