@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v1.8
+shell_version=v1.9
 pre_install_version=v1.0
 
 rootness(){
@@ -1408,6 +1408,14 @@ install_v2ray(){
 
 install_supervisor(){
 
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装Supervisor"
+	echo ""
+	echo "#######################################################################"
+	echo ""
+
 	verify_file(){
 
 		if [ -z "$verify_cmd" ] && [ -n "$verify" ]; then
@@ -1427,7 +1435,6 @@ install_supervisor(){
 		fi
 
 		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
-			set -x
 			echo "${verify}  ${file}" | $verify_cmd -c
 			return $?
 		fi
@@ -1463,7 +1470,7 @@ install_supervisor(){
 			mainmenu
 		fi
 
-		set -x; wget -q  --tries=3 -O "$file" --no-check-certificate "$url"
+		wget -q  --tries=3 -O "$file" --no-check-certificate "$url"
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -1474,22 +1481,18 @@ install_supervisor(){
 	config_install_supervisor(){
 
 		if [ ! -d "/etc/supervisor/conf.d" ]; then
-			set -x
 			mkdir -p /etc/supervisor/conf.d
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisord" ]; then
-			set -x
 			ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisorctl" ]; then
-			set -x
 			ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/pidproxy" ]; then
-			set -x
 			ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
 		fi
 
@@ -1507,7 +1510,6 @@ install_supervisor(){
 				mainmenu
 			fi
 
-			set -x
 			echo_supervisord_conf >"$cfg_file" 2>/dev/null
 
 
@@ -1536,15 +1538,25 @@ install_supervisor(){
 			supervisor_startup_file='/lib/systemd/system/supervisord.service'
 			supervisor_startup_file_url="https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/supervisord.systemd"
 			download_file "$supervisor_startup_file_url" "$supervisor_startup_file"
-			set -x
 			systemctl daemon-reload >/dev/null 2>&1
 		fi
 	}
 
-	command_exists(){
+	if [ -z "/etc/supervisord.conf" ] && command_exists supervisord; then
 
-		command -v "$@" >/dev/null 2>&1
-	}
+		cat >&2 <<-EOF
+		检测到你曾经通过其他方式安装过 Supervisor , 这会和本脚本安装的 Supervisor 产生冲突
+		推荐你备份当前 Supervisor 配置后卸载原有版本
+		已安装的 Supervisor 配置文件路径为: /etc/supervisord.conf
+		通过本脚本安装的 Supervisor 配置文件路径为: /etc/supervisor/supervisord.conf
+		你可以使用以下命令来备份原有配置文件:
+
+		mv /etc/supervisord.conf /etc/supervisord.conf.bak
+		EOF
+
+		any_key_to_continue
+		mainmenu
+	fi
 
 	if [ -n "/etc/supervisor/supervisord.conf" ]; then
 		easy_install -U supervisor
@@ -1557,7 +1569,22 @@ install_supervisor(){
 		supervisorctl update
 		supervisorctl reread
 		supervisorctl status
+		echo "#######################################################################"
+		echo ""
+		echo "Supervisor安装完毕."
+		echo ""
+		echo "#######################################################################"
+		echo ""
+	else
+		echo "#######################################################################"
+		echo ""
+		echo "Supervisor安装失败，请稍后再试.."
+		echo ""
+		echo "#######################################################################"
+		echo ""
 	fi
+
+	auto_continue
 }
 
 install_vlmcsd(){
@@ -1999,7 +2026,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-			( set -x; wget -q --tries=3 -O "$file" --no-check-certificate "$url" )
+		wget -q --tries=3 -O "$file" --no-check-certificate "$url"
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -2026,10 +2053,8 @@ install_kcptun(){
 		fi
 
 		if [ -s "$file" ] && [ -n "$verify_cmd" ]; then
-			(
-				set -x
-				echo "${verify}  ${file}" | $verify_cmd -c
-			)
+
+			echo "${verify}  ${file}" | $verify_cmd -c
 			return $?
 		fi
 
@@ -2094,10 +2119,7 @@ install_kcptun(){
 			dir="$(dirname "$jq_bin")"
 
 			if [ ! -d "$dir" ]; then
-				(
-					set -x
-					mkdir -p "$dir"
-				)
+				mkdir -p "$dir"
 			fi
 
 			if [ -z "$architecture" ]; then
@@ -2107,8 +2129,8 @@ install_kcptun(){
 
 			case "$architecture" in
 				amd64|x86_64)
-					download_file "https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/jq-linux64" "$jq_bin" "d8e36831c3c94bb58be34dd544f44a6c6cb88568"
-					;;
+				download_file "https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/jq-linux64" "$jq_bin" "d8e36831c3c94bb58be34dd544f44a6c6cb88568"
+				;;
 			esac
 
 			if ! check_jq; then
@@ -2676,15 +2698,15 @@ install_kcptun(){
 	install_deps(){
 
 		if ! command_exists wget; then
-			set -x; sleep 3; yum -q -y install ca-certificates
+			sleep 3; yum -q -y install ca-certificates
 		fi
 
 		if ! command_exists awk; then
-			set -x; sleep 3; yum -q -y install gawk
+			sleep 3; yum -q -y install gawk
 		fi
 
 		if ! command_exists tar; then
-			set -x; sleep 3; yum -q -y install tar
+			sleep 3; yum -q -y install tar
 		fi
 
 		install_jq
@@ -2772,17 +2794,14 @@ install_kcptun(){
 		download_file "$kcptun_release_download_url" "$kcptun_file_name" "$kcptun_release_verify"
 
 		if [ ! -d "$install_dir" ]; then
-			set -x
 			mkdir -p "$install_dir"
 		fi
 
 		if [ ! -d "$log_dir" ]; then
-			set -x
 			mkdir -p "$log_dir"
 			chmod a+w "$log_dir"
 		fi
 
-		set -x
 		tar -zxf "$kcptun_file_name" -C "$install_dir"
 		sleep 3
 		local kcptun_server_file=
@@ -2902,22 +2921,18 @@ install_kcptun(){
 	config_install_supervisor(){
 
 		if [ ! -d "/etc/supervisor/conf.d" ]; then
-			set -x
 			mkdir -p /etc/supervisor/conf.d
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisord" ]; then
-			set -x
 			ln -s "$(command -v supervisord)" '/usr/local/bin/supervisord' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/supervisorctl" ]; then
-			set -x
 			ln -s "$(command -v supervisorctl)" '/usr/local/bin/supervisorctl' 2>/dev/null
 		fi
 
 		if [ ! -f "/usr/local/bin/pidproxy" ]; then
-			set -x
 			ln -s "$(command -v pidproxy)" '/usr/local/bin/pidproxy' 2>/dev/null
 		fi
 
@@ -2935,7 +2950,6 @@ install_kcptun(){
 				mainmenu
 			fi
 
-			set -x
 			echo_supervisord_conf >"$cfg_file" 2>/dev/null
 
 			if [ "$?" != "0" ]; then
@@ -2961,7 +2975,6 @@ install_kcptun(){
 		local mod=$2
 
 		if [ ! -d "$dir" ]; then
-			set -x
 			mkdir -p "$dir"
 		fi
 
@@ -3031,10 +3044,7 @@ install_kcptun(){
 			"interval" "resend" "nc" "sockbuf" "keepalive"
 
 		if ! grep -q "^${run_user}:" '/etc/passwd'; then
-			(
-				set -x
-				useradd -U -s '/usr/sbin/nologin' -d '/nonexistent' "$run_user" 2>/dev/null
-			)
+			useradd -U -s '/usr/sbin/nologin' -d '/nonexistent' "$run_user" 2>/dev/null
 		fi
 
 		cat > "$supervisor_config_file"<<-EOF
@@ -3070,7 +3080,7 @@ install_kcptun(){
 
 	start_supervisor(){
 
-		set -x; sleep 3
+		sleep 3
 
 		if command_exists systemctl; then
 			if systemctl status supervisord.service >/dev/null 2>&1; then
@@ -3095,13 +3105,10 @@ install_kcptun(){
 	enable_supervisor(){
 
 		if command_exists systemctl; then
-			(
-				set -x
-				systemctl enable "supervisord.service"
-				supervisorctl update
-				supervisorctl reread
-				supervisorctl status
-			)
+			systemctl enable "supervisord.service"
+			supervisorctl update
+			supervisorctl reread
+			supervisorctl status
 		fi
 	}
 
