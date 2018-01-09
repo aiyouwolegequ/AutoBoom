@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.0
-pre_install_version=v1.1
+shell_version=v2.1
+pre_install_version=v1.2
 
 rootness(){
 
@@ -297,6 +297,8 @@ pre_install(){
 		echo "timeout=300" >> /etc/yum.conf
 	fi
 
+	wget -q https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+	rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 	rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	yum groupinstall "Development Tools" -q -y
 
@@ -305,34 +307,40 @@ pre_install(){
 		rpm --quiet -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	fi
 
+	yum-complete-transaction --cleanup-only -q
+	yum history redo last -q
+
 	for a in epel-release yum-plugin-fastestmirror yum-utils deltarpm
 	do
-		if [ `rpm -qa | grep $a |wc -l` -ne 1 ];then
+		if [ `rpm -qa | grep $a | wc -l` -eq 0 ];then
 			yum install $a -q -y
 		fi
 	done
 
-	while [ `rpm -qa |grep epel-release | wc -l` -eq 0 ]
+	for a in mirrorlist metalink
 	do
-		sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel.repo
-		sed -i "s/^metalink/#metalink/g" /etc/yum.repos.d/epel.repo
-		sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel-testing.repo
-		sed -i "s/^metalink/#metalink/g" /etc/yum.repos.d/epel-testing.repo
+		while [ `rpm -qa |grep epel-release | wc -l` -eq 1 ] && [ `cat /etc/yum.repos.d/epel.repo | grep "$a" | wc -l` -ne 0 ]; do
+			sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel.repo
+			sed -i 's/^'${a}'/#'${a}'/g' /etc/yum.repos.d/epel.repo
+			break
+		done
 	done
 
 	yum makecache -q
-	rm -f /var/run/yum.pid
+	rm -rf /var/run/yum.pid
 
-	yum install asciidoc autoconf automake bind-utils bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel pcre-devel policycoreutils-python ppp psmisc python34-devel python-devel python-pip python-setuptools readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib-devel -q -y
+	yum install asciidoc autoconf automake bind-utils bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel pcre-devel policycoreutils-python ppp psmisc python34 python34-devel python-devel python-pip python-setuptools readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib-devel libcurl-devel -q -y
 	ldconfig
-	wget https://bootstrap.pypa.io/get-pip.py
+	wget -q https://bootstrap.pypa.io/get-pip.py
 	python get-pip.py
 	python3 get-pip.py
 	python -m pip install -U pip -q
 	python -m pip install -U distribute -q
 	python3 -m pip install --upgrade pip -q
-	python -m pip install pygments dnspython gevent wafw00f censys selenium BeautifulSoup4 json2html tabulate configparser parse wfuzz feedparser greenlet -q
+	python -m pip install pycurl pygments dnspython gevent wafw00f censys selenium BeautifulSoup4 json2html tabulate configparser parse wfuzz feedparser greenlet -q
 	python3 -m pip install scrapy docopt twisted lxml parsel w3lib cryptography pyopenssl anubis-netsec plecost json2html tabulate -q
+	easy_install -q shodan
+	easy_install -q supervisor
 	updatedb
 	locate inittab
 	rm -rf get-pip.py
@@ -411,6 +419,7 @@ updatesystem(){
 	auto_continue
 }
 
+<<!
 updatekernel(){
 
 	clear
@@ -439,6 +448,7 @@ updatekernel(){
 	echo ""
 	auto_continue
 }
+!
 
 changerootpasswd(){
 
@@ -1561,7 +1571,7 @@ install_supervisor(){
 	fi
 
 	if [ -n "/etc/supervisor/supervisord.conf" ]; then
-		easy_install -U supervisor
+		easy_install -U -q supervisor
 		config_install_supervisor
 		download_startup_file
 	fi
@@ -3148,6 +3158,7 @@ install_kcptun(){
 	any_key_to_continue
 }
 
+<<!
 install_dnscrypt(){
 
 	clear
@@ -3320,6 +3331,12 @@ install_dnscrypt(){
 	echo ""
 	any_key_to_continue
 }
+!
+
+install_vsftp(){
+
+
+}
 
 install_pentest_tools(){
 
@@ -3329,7 +3346,6 @@ install_pentest_tools(){
 	echo "开始安装渗透工具"
 	echo ""
 	echo "#######################################################################"
-	easy_install shodan
 	git clone -q https://github.com/lijiejie/subDomainsBrute.git /usr/src/pentest/subDomainsBrute
 	git clone -q https://github.com/urbanadventurer/WhatWeb.git /usr/src/pentest/WhatWeb
 	git clone -q https://github.com/gelim/censys.git /usr/src/pentest/censys
@@ -3496,6 +3512,7 @@ install_all(){
 	#install_dnscrypt
 	install_aide
 	install_pentest_tools
+	install_vsftp
 	clearsystem
 	finally
 }
@@ -3601,9 +3618,9 @@ submenu1(){
 			;;
 		*)
 			updatesystem
-			updatekernel
+			#updatekernel
 			clearsystem
-			rebootcheck
+			#rebootcheck
 			;;
 	esac
 }
@@ -3654,7 +3671,7 @@ mainmenu(){
 	echo ""
 	echo "(0) 退出"
 	echo "(1) 默认全部安装"
-	echo "(2) 升级系统，升级内核，清理系统"
+	echo "(2) 升级系统，#升级内核，清理系统"
 	echo "(3) 更换root密码，新增ssh免密码验证用户"
 	echo "(4) 安装ckrootkit和rkhunter"
 	echo "(5) 安装fail2ban"
@@ -3670,6 +3687,7 @@ mainmenu(){
 	echo "(15) 安装pptp"
 	echo "(16) 安装aide"
 	echo "(17) 安装pentest tools"
+	echo "(18) 安装vsftp"
 	echo ""
 	echo "#######################################################################"
 
@@ -3730,7 +3748,7 @@ mainmenu(){
 			mainmenu
 			;;
 		14)
-			install_dnscrypt
+			#install_dnscrypt
 			mainmenu
 			;;
 		15)
@@ -3744,6 +3762,10 @@ mainmenu(){
 			;;
 		17)
 			install_pentest_tools
+			mainmenu
+			;;
+		18)
+			install_vsftp
 			mainmenu
 			;;
 		*)
