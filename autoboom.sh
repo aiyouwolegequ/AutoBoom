@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.1
+shell_version=v2.2
 pre_install_version=v1.2
 
 rootness(){
@@ -3335,7 +3335,23 @@ install_dnscrypt(){
 
 install_vsftp(){
 
+	yum -q -y install vsftpd
+	sed -i 's/^anonymous_enable=YES/anonymous_enable=NO/g' /etc/vsftpd/vsftpd.conf
+	echo chroot_local_user=YES >> /etc/vsftpd/vsftpd.conf
+	echo allow_writeable_chroot=YES >> /etc/vsftpd/vsftpd.conf
+	echo pasv_enable=YES >> /etc/vsftpd/vsftpd.conf
+	echo pasv_min_port=40000 >> /etc/vsftpd/vsftpd.conf
+	echo pasv_max_port=40100 >> /etc/vsftpd/vsftpd.conf
+	systemctl status vsftpd.service
+	systemctl restart vsftpd.service
+	firewall-cmd --permanent --add-service=ftp
+	firewall-cmd --reload
+	useradd -d /home/ftpd -m uftp -s /sbin/nologin
+	echo ftpddptf123321 | passwd uftp --stdin
 
+	systemctl stop vsftpd.service
+	firewall-cmd --permanent --remove-service=ftp
+	firewall-cmd --reload
 }
 
 install_pentest_tools(){
