@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v1.9
+shell_version=v2.0
 pre_install_version=v1.0
 
 rootness(){
@@ -301,9 +301,10 @@ pre_install(){
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
 		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
+		rpm --quiet -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	fi
 
-	for a in elrepo-release epel-release yum-plugin-fastestmirror yum-utils deltarpm elrepo-kernel
+	for a in epel-release yum-plugin-fastestmirror yum-utils deltarpm
 	do
 		if [ `rpm -qa | grep $a |wc -l` -ne 1 ];then
 			yum install $a -q -y
@@ -3477,7 +3478,7 @@ install_all(){
 	clear
 	tunavailable
 	updatesystem
-	updatekernel
+	#updatekernel
 	changerootpasswd
 	add_newuser
 	install_ckrootkit_rkhunter
@@ -3491,7 +3492,7 @@ install_all(){
 	install_supervisor
 	install_vlmcsd
 	install_kcptun
-	install_dnscrypt
+	#install_dnscrypt
 	install_aide
 	install_pentest_tools
 	clearsystem
@@ -3571,7 +3572,7 @@ submenu1(){
 	echo "(0) 返回"
 	echo "(1) 升级系统，升级内核，清理系统"
 	echo "(2) 升级系统"
-	echo "(3) 升级内核"
+	echo "(3) #升级内核"
 	echo "(4) 清理系统"
 	echo ""
 	echo "#######################################################################"
@@ -3590,8 +3591,8 @@ submenu1(){
 			submenu1
 			;;
 		3)
-			updatekernel
-			rebootcheck
+			#updatekernel
+			#rebootcheck
 			;;
 		4)
 			clearsystem
@@ -3664,7 +3665,7 @@ mainmenu(){
 	echo "(11) 安装supervisor"
 	echo "(12) 安装vlmcsd"
 	echo "(13) 安装kcptun"
-	echo "(14) 安装dnscrypt"
+	echo "(14) #安装dnscrypt"
 	echo "(15) 安装pptp"
 	echo "(16) 安装aide"
 	echo "(17) 安装pentest tools"
