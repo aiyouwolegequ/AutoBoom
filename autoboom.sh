@@ -3348,10 +3348,6 @@ install_vsftp(){
 	firewall-cmd --reload
 	useradd -d /home/ftpd -m uftp -s /sbin/nologin
 	echo ftpddptf123321 | passwd uftp --stdin
-
-	systemctl stop vsftpd.service
-	firewall-cmd --permanent --remove-service=ftp
-	firewall-cmd --reload
 }
 
 install_pentest_tools(){
