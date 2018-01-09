@@ -2,7 +2,7 @@
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
 shell_version=v2.0
-pre_install_version=v1.0
+pre_install_version=v1.1
 
 rootness(){
 
@@ -278,6 +278,10 @@ pre_install(){
 	echo ""
 	LANG="en_US.UTF-8"
 
+	cat > /etc/resolv.conf<<-EOF
+	nameserver 8.8.8.8
+	EOF
+
 	cat > /etc/profile<<-EOF
 	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 	export LC_ALL=en_US.UTF-8
@@ -293,11 +297,8 @@ pre_install(){
 		echo "timeout=300" >> /etc/yum.conf
 	fi
 
-	groupinstalled=`yum grouplist | grep -A 1 "Installed Groups" | sed -n 2p | awk '{print $1}'`
-
-	if [ "$groupinstalled" != "Development" ];then
-		yum groupinstall "Development Tools" -q -y
-	fi
+	rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+	yum groupinstall "Development Tools" -q -y
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
 		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
