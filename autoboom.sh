@@ -3283,6 +3283,7 @@ install_dnscrypt(){
 
 	cat > /etc/resolv.conf<<-EOF
 	nameserver 127.0.0.1
+	nameserver 8.8.8.8
 	EOF
 
 	systemctl restart pdnsd
