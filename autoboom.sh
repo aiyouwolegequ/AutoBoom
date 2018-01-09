@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.2
+shell_version=v2.3
 pre_install_version=v1.2
 
 rootness(){
@@ -3158,7 +3158,6 @@ install_kcptun(){
 	any_key_to_continue
 }
 
-<<!
 install_dnscrypt(){
 
 	clear
@@ -3178,48 +3177,18 @@ install_dnscrypt(){
 	ldconfig
 	sleep 1
 	cd
-	wget -q --tries=3 -O dnscrypt-proxy.tar.gz https://download.dnscrypt.org/dnscrypt-proxy/LATEST.tar.gz
-	tar zxvf dnscrypt-proxy.tar.gz
-	cd dnscrypt-proxy*
-	./configure
-	make && make install
-	sleep 1
-	cd
-	rm -rf dnscrypt*
 	mkdir ~/.dns
 	cd ~/.dns
 	dnscrypt-wrapper --gen-provider-keypair > /var/autoboom/log/dns.log
-	pub=$(cat /var/autoboom/log/dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
+	local pub=$(cat /var/autoboom/log/dns.log | grep provider-key | awk '{print $3}' | cut -d "=" -f 2)
 	dnscrypt-wrapper --gen-crypt-keypair --crypt-secretkey-file=1.key
 	dnscrypt-wrapper --gen-cert-file --crypt-secretkey-file=1.key --provider-cert-file=1.cert --provider-publickey-file=public.key --provider-secretkey-file=secret.key --cert-file-expire-days=365
 	firewall-cmd --quiet --permanent --zone=public --add-port=5453/tcp
-	firewall-cmd --quiet --permanent --zone=public --add-port=5354/tcp
 	firewall-cmd --quiet --permanent --zone=public --add-port=3535/tcp
 	firewall-cmd --quiet --permanent --zone=public --add-port=5453/udp
-	firewall-cmd --quiet --permanent --zone=public --add-port=5354/udp
 	firewall-cmd --quiet --permanent --zone=public --add-port=3535/udp
 	firewall-cmd --quiet --permanent --zone=public --add-port=53/udp
 	firewall-cmd --reload
-
-	if [ ! -e "/usr/lib/systemd/system/supervisord.service" ]; then
-		install_supervisor
-	fi
-
-	clear
-
-	cat > /etc/supervisor/conf.d/dnscrypt.conf<<-EOF
-	[program:dnscrypt-proxy]
-	command = /usr/local/sbin/dnscrypt-proxy --local-address=127.0.0.1:5354 --resolver-address=178.216.201.222:2053 --provider-name=2.dnscrypt-cert.soltysiak.com --provider-key=25C4:E188:2915:4697:8F9C:2BBD:B6A7:AFA4:01ED:A051:0508:5D53:03E7:1928:C066:8F21
-	startsecs = 5
-	autostart = true
-	startretries = 3
-	user = nobody
-	EOF
-
-	systemctl restart supervisord.service
-	supervisorctl update
-	supervisorctl reread
-	supervisorctl status
 
 	cat > /usr/lib/systemd/system/dnscrypt-wrapper.service<<-EOF
 	[Unit]
@@ -3273,7 +3242,7 @@ install_dnscrypt(){
 	server {
 	label= "googledns";
 	ip = 127.0.0.1;
-	port = 5354;
+	port = 5453;
 	timeout=4;
 	uptest=none;
 	purge_cache=off;
@@ -3316,7 +3285,6 @@ install_dnscrypt(){
 	nameserver 127.0.0.1
 	EOF
 
-	supervisorctl restart dnscrypt-proxy
 	systemctl restart pdnsd
 	systemctl restart dnsmasq
 	echo "#######################################################################"
@@ -3331,7 +3299,6 @@ install_dnscrypt(){
 	echo ""
 	any_key_to_continue
 }
-!
 
 install_vsftp(){
 
@@ -3521,7 +3488,7 @@ install_all(){
 	install_supervisor
 	install_vlmcsd
 	install_kcptun
-	#install_dnscrypt
+	install_dnscrypt
 	install_aide
 	install_pentest_tools
 	install_vsftp
@@ -3695,7 +3662,7 @@ mainmenu(){
 	echo "(11) 安装supervisor"
 	echo "(12) 安装vlmcsd"
 	echo "(13) 安装kcptun"
-	echo "(14) #安装dnscrypt"
+	echo "(14) 安装dnscrypt"
 	echo "(15) 安装pptp"
 	echo "(16) 安装aide"
 	echo "(17) 安装pentest tools"
@@ -3760,7 +3727,7 @@ mainmenu(){
 			mainmenu
 			;;
 		14)
-			#install_dnscrypt
+			install_dnscrypt
 			mainmenu
 			;;
 		15)
