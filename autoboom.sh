@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.4
+shell_version=v2.5
 pre_install_version=v1.2
 
 rootness(){
@@ -3303,6 +3303,12 @@ install_dnscrypt(){
 
 install_vsftp(){
 
+	clear
+	echo "#######################################################################"
+	echo ""
+	echo "Ftp工具"
+	echo ""
+	echo "#######################################################################"
 	yum -q -y install vsftpd
 	sed -i 's/^anonymous_enable=YES/anonymous_enable=NO/g' /etc/vsftpd/vsftpd.conf
 	echo chroot_local_user=YES >> /etc/vsftpd/vsftpd.conf
@@ -3316,6 +3322,13 @@ install_vsftp(){
 	firewall-cmd --reload
 	useradd -d /home/ftpd -m uftp -s /sbin/nologin
 	echo ftpddptf123321 | passwd uftp --stdin
+	echo "#######################################################################"
+	echo ""
+	echo "Ftp安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
 }
 
 install_pentest_tools(){
