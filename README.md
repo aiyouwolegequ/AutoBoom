@@ -1,6 +1,8 @@
 wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh      
 sh autoboom.sh           
 
+需要root权限以及zsh！！！             
+
 (0) 退出        
 (1) 默认全部安装        
 (2) 升级系统，升级内核，清理系统        
@@ -38,6 +40,7 @@ rkhunter --check --sk | grep Warning
 
 Fail2ban 相关命令:        
 fail2ban-client status sshd 查看被屏蔽的IP列表        
+fail2ban-client set ssh unbanip x.x.x.x 解除被屏蔽IP             
 
 Lynis 相关命令:        
 lynis update info        
