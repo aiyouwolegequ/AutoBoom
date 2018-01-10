@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.9
+shell_version=v3.0
 pre_install_version=v1.3
 
 rootness(){
@@ -20,10 +20,8 @@ check_shell(){
 		echo "zsh安装完毕！"
 	fi
 
-	local a=`ps -ef | grep zsh | grep -v grep | wc -l`
-
-	if [ "$a" -eq 0 ];then
-		echo "请使用env zsh切换到zsh后再执行脚本！"
+	if [ `echo $SHELL` != "/bin/zsh" ];then
+		echo "请使用chsh -s /bin/zsh && su - 切换到zsh后再执行脚本！"
 		exit 1
 	fi
 }
