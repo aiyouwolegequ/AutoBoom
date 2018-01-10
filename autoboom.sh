@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.1
+shell_version=v3.2
 pre_install_version=v1.4
 
 rootness(){
@@ -3714,7 +3714,7 @@ mainmenu(){
 	fi
 
 	if [ -z `command -v l2tp` ]; then
-		a9=`echo "(9) 安装l2tp""`
+		a9=`echo "(9) 安装l2tp"`
 	else
 		a9=`echo -e "(9) $a1已安装l2tp$a2"`
 	fi
@@ -3756,7 +3756,7 @@ mainmenu(){
 	fi
 
 	if [ -z `command -v aide` ]; then
-		a16=`echo "(16) 安装aide""`
+		a16=`echo "(16) 安装aide"`
 	else
 		a16=`echo -e "(16) $a1已安装aide$a2"`
 	fi
@@ -3774,9 +3774,9 @@ mainmenu(){
 	fi
 
 	if [ -z `command -v docker` ]; then
-		a16=`echo "(16) 安装docker""`
+		a19=`echo "(19) 安装docker"`
 	else
-		a16=`echo -e "(16) $a1已安装docker$a2"`
+		a19=`echo -e "(19) $a1已安装docker$a2"`
 	fi
 
 	echo "#######################################################################"
