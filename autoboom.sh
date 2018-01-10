@@ -76,7 +76,7 @@ get_os_info(){
 	local opsy=$(get_opsy)
 	local arch=$(uname -m)
 	local lbit=$(getconf LONG_BIT)
-	local host=$(hostname )
+	local host=$(hostname)
 	local kern=$(uname -r)
 	mkdir -p /var/autoboom/log
 	touch /var/autoboom/log/os.log
