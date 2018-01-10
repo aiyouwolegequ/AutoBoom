@@ -312,8 +312,11 @@ pre_install(){
 		echo "timeout=300" >> /etc/yum.conf
 	fi
 
-	wget -q https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-	rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release" ];then
+		wget -q https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+	fi
+	
 	rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	yum groupinstall "Development Tools" -q -y
 
