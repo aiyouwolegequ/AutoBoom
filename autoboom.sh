@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.5
-pre_install_version=v1.2
+shell_version=v2.6
+pre_install_version=v1.3
 
 rootness(){
 
@@ -12,6 +12,15 @@ rootness(){
 	fi
 }
 
+check_shell(){
+
+	if [ ! -f "/bin/zsh" ];then
+		echo "错误:需要zsh！安装zsh中！"
+		yum install zsh -q -y
+		echo "zsh安装完毕！请使用env zsh切换到zsh后再执行脚本！"
+		exit 1
+	fi
+}
 get_char(){
 
 	SAVEDSTTY=`stty -g`
@@ -801,7 +810,7 @@ install_fail2ban(){
 	echo "#######################################################################"
 	echo ""
 
-	if [ ! -f "/bin/fail2ban-client" ]; then
+	if [ ! -f "/usr/bin/fail2ban-client" ]; then
 		yum install fail2ban fail2ban-firewalld fail2ban-systemd -q -y
 		cat > /etc/fail2ban/jail.local<<-EOF
 		[DEFAULT]
@@ -824,10 +833,9 @@ install_fail2ban(){
 		systemctl start firewalld
 		systemctl enable fail2ban
 		systemctl start fail2ban
-		systemctl -a | grep fail2ban
+		systemctl -l | grep fail2ban | awk '{print $1,$2,$3,$4}'
 	fi
 
-	fail2ban-client status
 	fail2ban-client status sshd
 	echo "#######################################################################"
 	echo ""
@@ -893,10 +901,6 @@ install_zsh(){
 	echo "#######################################################################"
 	echo ""
 	cd
-
-	if [ ! -f "/bin/zsh" ];then
-		yum install zsh -q -y
-	fi
 
 	if [ -d "/root/.oh-my-zsh" ]; then
 		echo "#######################################################################"
@@ -1079,7 +1083,7 @@ install_shadowsocks(){
 		systemctl daemon-reload
 		systemctl start shadowsocks-libev.service
 		systemctl enable shadowsocks-libev.service
-		systemctl -a | grep shadowsocks
+		systemctl -l | grep shadowsocks | awk '{print $1,$2,$3,$4}'
 		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/shadowsocks_bin.sh
 		chmod +x shadowsocks_bin.sh
 		./shadowsocks_bin.sh
@@ -1169,7 +1173,7 @@ install_pptp(){
 	modprobe ip_nat_pptp
 	systemctl start pptpd.service
 	systemctl enable pptpd.service
-	systemctl -a | grep pptpd
+	systemctl -l | grep pptpd | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
 	echo ""
 	echo "PPTP VPN安装完毕."
@@ -1219,8 +1223,8 @@ install_l2tp(){
 	systemctl start xl2tpd
 	systemctl enable ipsec
 	systemctl enable xl2tpd
-	systemctl -a | grep ipsec
-	systemctl -a | grep xl2tpd
+	systemctl -l | grep ipsec | awk '{print $1,$2,$3,$4}'
+	systemctl -l | grep xl2tpd | awk '{print $1,$2,$3,$4}'
 
 	cat > /etc/firewalld/services/xl2tpd.xml<<-EOF
 	<?xml version="1.0" encoding="utf-8"?>
@@ -1318,8 +1322,8 @@ install_l2tp(){
 	firewall-cmd --reload
 	systemctl restart ipsec
 	systemctl restart xl2tpd
-	systemctl -a | grep ipsec
-	systemctl -a | grep xl2tpd
+	systemctl -l | grep ipsec | awk '{print $1,$2,$3,$4}'
+	systemctl -l | grep xl2tpd | awk '{print $1,$2,$3,$4}'
 	cd
 	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/l2tp_bin.sh
 	chmod +x l2tp_bin.sh
@@ -1396,7 +1400,7 @@ install_v2ray(){
 		systemctl enable v2ray.service
 		systemctl start v2ray
 		rm -rf /tmp/v2ray
-		systemctl -a | grep v2ray
+		systemctl -l | grep v2ray | awk '{print $1,$2,$3,$4}'
 		echo "#######################################################################"
 		echo ""
 		echo "V2Ray安装完毕."
@@ -1650,7 +1654,7 @@ install_vlmcsd(){
 	systemctl daemon-reload
 	systemctl enable vlmcsd.service
 	systemctl start vlmcsd.service
-	systemctl -a | grep vlmcsd
+	systemctl -l | grep vlmcsd | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
 	echo ""
 	echo "Vlmcsd安装完毕."
@@ -3213,7 +3217,7 @@ install_dnscrypt(){
 	systemctl daemon-reload
 	systemctl start dnscrypt-wrapper
 	systemctl enable dnscrypt-wrapper
-	systemctl -a | grep dnscrypt-wrapper
+	systemctl -l | grep dnscrypt-wrapper | awk '{print $1,$2,$3,$4}'
 	yum install dnsmasq -q -y
 	wget -q --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -q -y
@@ -3269,8 +3273,8 @@ install_dnscrypt(){
 	systemctl enable pdnsd
 	systemctl start dnsmasq.service
 	systemctl enable dnsmasq.service
-	systemctl -a | grep pdnsd
-	systemctl -a | grep dnsmasq
+	systemctl -l | grep pdnsd | awk '{print $1,$2,$3,$4}'
+	systemctl -l | grep dnsmasq | awk '{print $1,$2,$3,$4}'
 
 	cat > /etc/dnsmasq.conf<<-EOF
 	no-resolv
@@ -3309,6 +3313,7 @@ install_vsftp(){
 	echo "Ftp工具"
 	echo ""
 	echo "#######################################################################"
+	echo 清稍等
 	yum -q -y install vsftpd
 	sed -i 's/^anonymous_enable=YES/anonymous_enable=NO/g' /etc/vsftpd/vsftpd.conf
 	echo chroot_local_user=YES >> /etc/vsftpd/vsftpd.conf
@@ -3316,76 +3321,15 @@ install_vsftp(){
 	echo pasv_enable=YES >> /etc/vsftpd/vsftpd.conf
 	echo pasv_min_port=40000 >> /etc/vsftpd/vsftpd.conf
 	echo pasv_max_port=40100 >> /etc/vsftpd/vsftpd.conf
-	systemctl status vsftpd.service
-	systemctl restart vsftpd.service
 	firewall-cmd --permanent --add-service=ftp
 	firewall-cmd --reload
 	useradd -d /home/ftpd -m uftp -s /sbin/nologin
 	echo ftpddptf123321 | passwd uftp --stdin
+	systemctl start vsftpd.service
+	systemctl -l | grep vsftpd | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
 	echo ""
 	echo "Ftp安装完毕."
-	echo ""
-	echo "#######################################################################"
-	echo ""
-	any_key_to_continue
-}
-
-install_pentest_tools(){
-
-	clear
-	echo "#######################################################################"
-	echo ""
-	echo "开始安装渗透工具"
-	echo ""
-	echo "#######################################################################"
-	git clone -q https://github.com/lijiejie/subDomainsBrute.git /usr/src/pentest/subDomainsBrute
-	git clone -q https://github.com/urbanadventurer/WhatWeb.git /usr/src/pentest/WhatWeb
-	git clone -q https://github.com/gelim/censys.git /usr/src/pentest/censys
-	git clone -q https://github.com/Xyntax/FileSensor /usr/src/pentest/FileSensor
-	git clone -q https://github.com/Xyntax/BingC.git /usr/src/pentest/BingC
-	git clone -q https://github.com/TheRook/subbrute.git /usr/src/pentest/subbrute
-	git clone -q https://github.com/n4xh4ck5/N4xD0rk.git /usr/src/pentest/N4xD0rk
-	git clone -q https://github.com/TheRook/subbrute.git /usr/src/pentest/subbrute
-	git clone -q https://github.com/n4xh4ck5/N4xD0rk.git /usr/src/pentest/N4xD0rk
-	git clone -q https://github.com/maurosoria/dirsearch.git /usr/src/pentest/dirsearch
-	git clone -q https://github.com/stanislav-web/OpenDoor.git /usr/src/pentest/OpenDoor
-	git clone -q https://github.com/ekultek/whatwaf.git /usr/src/pentest/whatwaf
-	git clone -q https://github.com/aboul3la/Sublist3r.git /usr/src/pentest/Sublist3r
-	git clone -q https://github.com/laramies/theHarvester.git /usr/src/pentest/theHarvester
-	git clone -q https://github.com/appsecco/bugcrowd-levelup-subdomain-enumeration.git /usr/src/pentest/bugcrowd
-	git clone -q https://github.com/darkoperator/dnsrecon /usr/src/pentest/dnsrecon
-	git clone -q --depth 1 https://github.com/sqlmapproject/sqlmap.git sqlmap-dev /usr/src/pentest/sqlmap-dev
-
-	if [ -e "/root/.zshrc" ];then
-
-		cat >> /root/.zshrc<<-EOF
-		alias theharvester="python /usr/src/pentest/theHarvester/theHarvester.py -b all -l 1000 -h -d"
-		alias subDomainsBrute="python /usr/src/pentest/subDomainsBrute/subDomainsBrute.py"
-		alias censys="python /usr/src/pentest/censys/censys_io.py"
-		alias censys="python /usr/src/pentest/censys/censys_io.py"
-		alias filesensor="python3 /usr/src/pentest/FileSensor/filesensor.py"
-		alias bingc="python /usr/src/pentest/BingC/bingC.py"
-		alias reverseip="python /usr/src/pentest/ReverseIP/reverseip.py"
-		alias sqlmap="python /usr/src/pentest/sqlmap-dev/sqlmap.py"
-		alias cdnfinder="docker run -it turbobytes/cdnfinder cdnfindercli --phantomjsbin="/bin/phantomjs" --host"
-		alias subdns="python /usr/src/pentest/subbrute/subbrute.py -p"
-		alias sublist3r="python /usr/src/pentest/Sublist3r/sublist3r.py -v -d"
-		alias n4xd0rk="python /usr/src/pentest/N4xD0rk/n4xd0rk.py -n 100 -t"
-		alias anubis="anubis -t -ip --with-nmap -r -d"
-		alias whatweb="ruby /usr/src/pentest/WhatWeb/whatweb -v"
-		alias dirsearch="python3  /usr/src/pentest/dirsearch/dirsearch.py -u"
-		alias wafw00f="wafw00f -r -a -v"
-		alias theharvester="python /usr/src/pentest/theHarvester/theHarvester.py"
-		alias dnsrecon="python3 /usr/src/pentest/dnsrecon/dnsrecon.py -D /usr/src/pentest/dnsrecon/subdomains-top1mil-20000.txt -t brt"
-		EOF
-
-		source /root/.zshrc
-	fi
-
-	echo "#######################################################################"
-	echo ""
-	echo "安装完毕!工具路径为/usr/src/pentest/"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3504,7 +3448,6 @@ install_all(){
 	install_kcptun
 	install_dnscrypt
 	install_aide
-	install_pentest_tools
 	install_vsftp
 	clearsystem
 	finally
@@ -3658,6 +3601,107 @@ submenu2(){
 mainmenu(){
 
 	clear
+	local 1="\033[41;30m"
+	local 2="\033[0m"
+	local 4=
+	local 5=
+	local 6=
+	local 7=
+	local 8=
+	local 9=
+	local 10=
+	local 11=
+	local 12=
+	local 13=
+	local 14=
+	local 15=
+	local 16=
+	local 17=
+
+	if [ ! -f "/bin/rkhunter" ] && [ ! -f "/usr/local/bin/chkrootkit" ]; then
+		4=`echo "(4) 安装ckrootkit和rkhunter"`
+	else
+		4=`echo -e "(4) $1已安装ckrootkit和rkhunter$2"`
+	fi
+
+	if [ ! -f "/usr/bin/fail2ban-client" ]; then
+		5=`echo "(5) 安装fail2ban"`
+	else
+		5=`echo -e "(5) $1已安装fail2ban$2"`
+	fi
+
+	if [ ! -f "/usr/local/bin/lynis" ]; then
+		6=`echo "(6) 安装lynis"`
+	else
+		6=`echo -e "(6) $1已安装lynis$2"`
+	fi
+
+	if [ -z `command -v upgrade_oh_my_zsh` ]; then
+		7=`echo "(7) 安装zsh"`
+	else
+		7=`echo "(7) $1已安装zsh$2"`
+	fi
+
+	if [ ! -e "/etc/shadowsocks-libev/config.json" ]; then
+		8=`echo "(8) 安装shadowsocks"`
+	else
+		8=`echo -e "(8) $1已安装shadowsocks$2"`
+	fi
+
+	if [ -z `command -v l2tp` ]; then
+		9=`echo "(9) 安装l2tp""`
+	else
+		9=`echo "(9) $1已安装l2tp$2"`
+	fi
+
+	if [ ! -e "/etc/v2ray/config.json" ]; then
+		10=`echo "(10) 安装v2ray"`
+	else
+		10=`echo -e "(10) $1已安装v2ray$2"`
+	fi
+
+	if [ ! -e "/etc/supervisor/supervisord.conf" ]; then
+		11=`echo "(11) 安装supervisor"`
+	else
+		11=`echo "(11) $1已安装supervisor$2"`
+	fi
+
+	if [ -z `command -v vlmcsd` ]; then
+		12=`echo "(12) 安装vlmcsd"`
+	else
+		12=`echo "(12) $1已安装vlmcsd$2"`
+	fi
+
+	if [ -z `command -v kcptun` ]; then
+		13=`echo "(13) 安装kcptun"`
+	else
+		13=`echo "(13) $1已安装kcptun$2"`
+	fi
+
+	if [ -z `command -v dnscrypt-wrapper` ]; then
+		14=`echo "(14) 安装dnscrypt"`
+	else
+		14=`echo "(14) $1已安装dnscrypt$2"`
+	fi
+
+	if [ ! -e "/etc/ppp/options.pptpd" ]; then
+		15=`echo "(15) 安装pptp"`
+	else
+		15=`echo "(15) $1已安装pptp$2"`
+	fi
+
+	if [ -z `command -v aide` ]; then
+		16=`echo "(16) 安装aide""`
+	else
+		16=`echo "(16) $1已安装aide$2"`
+	fi
+
+	if [ ! -e "/etc/vsftpd/vsftpd.conf" ]; then
+		17=`echo "(17) 安装vsftp"`
+	else
+		17=`echo "(17) $1已安装vsftp$2"`
+	fi
+
 	echo "#######################################################################"
 	echo ""
 	echo "进入正式安装......"
@@ -3666,21 +3710,20 @@ mainmenu(){
 	echo "(1) 默认全部安装"
 	echo "(2) 升级系统，#升级内核，清理系统"
 	echo "(3) 更换root密码，新增ssh免密码验证用户"
-	echo "(4) 安装ckrootkit和rkhunter"
-	echo "(5) 安装fail2ban"
-	echo "(6) 安装lynis"
-	echo "(7) 安装zsh"
-	echo "(8) 安装shadowsocks"
-	echo "(9) 安装l2tp"
-	echo "(10) 安装v2ray"
-	echo "(11) 安装supervisor"
-	echo "(12) 安装vlmcsd"
-	echo "(13) 安装kcptun"
-	echo "(14) 安装dnscrypt"
-	echo "(15) 安装pptp"
-	echo "(16) 安装aide"
-	echo "(17) 安装pentest tools"
-	echo "(18) 安装vsftp"
+	echo $4
+	echo $5
+	echo $6
+	echo $7
+	echo $8
+	echo $9
+	echo $10
+	echo $11
+	echo $12
+	echo $13
+	echo $14
+	echo $15
+	echo $16
+	echo $17
 	echo ""
 	echo "#######################################################################"
 
@@ -3754,10 +3797,6 @@ mainmenu(){
 			mainmenu
 			;;
 		17)
-			install_pentest_tools
-			mainmenu
-			;;
-		18)
 			install_vsftp
 			mainmenu
 			;;
@@ -3811,6 +3850,7 @@ main(){
 }
 
 rootness
+check_shell
 IP=$(curl -s ipinfo.io | sed -n 2p | awk -F \" '{print $4}')
 
 if [ ! -f "/usr/local/bin/autoboom" ]; then
