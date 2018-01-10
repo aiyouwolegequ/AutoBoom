@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.6
+shell_version=v2.7
 pre_install_version=v1.3
 
 rootness(){
@@ -15,9 +15,13 @@ rootness(){
 check_shell(){
 
 	if [ ! -f "/bin/zsh" ];then
-		echo "错误:需要zsh！安装zsh中！"
+		echo "错误:需要zsh\!安装zsh中\!"
 		yum install zsh -q -y
-		echo "zsh安装完毕！请使用env zsh切换到zsh后再执行脚本！"
+		echo "zsh安装完毕\!"
+	fi
+
+	if [ `echo $0` != "zsh" ];then
+		echo "请使用env zsh切换到zsh后再执行脚本\!"
 		exit 1
 	fi
 }
@@ -217,7 +221,7 @@ check_port(){
 		port_using=`lsof -nP -itcp:"$listen_port" | wc -l`
 
 		if [ "$port_using" -ne 0 ]; then
-			echo "端口已被占用, 请重新输入!"
+			echo "端口已被占用, 请重新输入\!"
 			listen_port="$d_listen_port"
 			continue
 		else
@@ -240,7 +244,7 @@ check_port(){
 				listen_port="$input"
 				is_using
 			else
-				echo "输入有误, 请输入 1~65535 之间的数字!"
+				echo "输入有误, 请输入 1~65535 之间的数字\!"
 				continue
 			fi
 		else
@@ -281,10 +285,10 @@ pre_install(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "预安装相关软件!请耐心等待!"
+	echo "预安装相关软件\!"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	LANG="en_US.UTF-8"
 
 	cat > /etc/resolv.conf<<-EOF
@@ -389,7 +393,7 @@ pre_install(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "预安装完成!"
+	echo "预安装完成\!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -401,10 +405,10 @@ updatesystem(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "正在升级系统"
+	echo "正在升级系统\!"
 	echo ""
 	echo "#######################################################################"
-	echo "请耐心等待!"
+	echo "请耐心等待\!"
 	cd
 	rm -f /var/run/yum.pid
 	yum upgrade -q -y
@@ -421,7 +425,7 @@ updatesystem(){
 	rpm --quiet --rebuilddb
 	echo "#######################################################################"
 	echo ""
-	echo "升级完毕!"
+	echo "升级完毕\!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -434,10 +438,10 @@ updatekernel(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "正在升级内核,请在全部脚本完成后重启系统"
+	echo "正在升级内核,请在全部脚本完成后重启系统\!"
 	echo ""
 	echo "#######################################################################"
-	echo "请耐心等待!"
+	echo "请耐心等待\!"
 
 	if [ `rpm -qa | grep kernel-ml |wc -l` -ne 1 ];then
 		yum --enablerepo=elrepo-kernel install kernel-ml -q -y
@@ -451,7 +455,7 @@ updatekernel(){
 	echo "tcp_bbr" > /etc/modules-load.d/modules.conf
 	echo "#######################################################################"
 	echo ""
-	echo "升级完毕!"
+	echo "升级完毕\!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -471,14 +475,14 @@ changerootpasswd(){
 				echo ""
 				echo "#######################################################################"
 				echo ""
-				echo "正在更换root密码!"
+				echo "正在更换root密码\!"
 				echo ""
 				echo "#######################################################################"
 				echo "${newrootpasswd}" | passwd --stdin root
 				echo "#######################################################################"
 				echo ""
 				echo -e "新root密码为	:\033[41;30m${newrootpasswd}\033[0m"
-				echo "请妥善保存root密码!"
+				echo "请妥善保存root密码\!"
 				echo ""
 				echo "#######################################################################"
 				echo ""
@@ -503,14 +507,14 @@ add_newuser(){
 				echo ""
 				echo "#######################################################################"
 				echo ""
-				echo "新建一个非root权限的系统用户!"
+				echo "新建一个非root权限的系统用户\!"
 				echo ""
 				echo "#######################################################################"
 				useradd -m ${newusername}
 				echo "${newuserpasswd}" | passwd --stdin ${newusername}
 				echo "#######################################################################"
 				echo ""
-				echo "请保存好用户名和密码!"
+				echo "请保存好用户名和密码\!"
 				echo -e "Username:\033[41;30m${newusername}\033[0m"
 				echo -e "Password:\033[41;30m${newuserpasswd}\033[0m"
 				echo ""
@@ -550,7 +554,7 @@ add_newuser(){
 								if [ `getent passwd | grep "$newusername" | wc -l` -eq 1 ]; then
 									add_ssh
 								else
-									echo "输入有误, 重新请输入!"
+									echo "输入有误, 重新请输入\!"
 									echo ""
 									echo "#######################################################################"
 									echo ""
@@ -639,7 +643,7 @@ add_ssh(){
 			echo ""
 			echo "#######################################################################"
 			if [ -z "$input" ]; then
-				echo "公钥不能为空!"
+				echo "公钥不能为空\!"
 				continue
 			else
 				check_user
@@ -681,7 +685,7 @@ add_ssh(){
 				systemctl restart sshd
 				clear
 				echo "#######################################################################"
-				echo "请使测试ssh是否恢复正常!"
+				echo "请使测试ssh是否恢复正常\!"
 				read -p "如果ssh不正常请Ctrl + C退出脚本手动检查ssh配置,是否恢复正常? (y/n) [默认=y]:" input
 				case "$input" in
 					n|N)
@@ -709,10 +713,10 @@ install_ckrootkit_rkhunter(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装ckrootkit和rkhunter"
+	echo "开始安装ckrootkit和rkhunter\!"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	cd
 
 	if [ ! -f "/bin/rkhunter" ]; then
@@ -745,7 +749,7 @@ install_ckrootkit_rkhunter(){
 		clear
 		echo "#######################################################################"
 		echo ""
-		echo "正在检测系统，请耐心等待!日志保存在/var/autoboom/log/chkrootkit.log和rkhunter.log"
+		echo "正在检测系统，请耐心等待\!日志保存在/var/autoboom/log/chkrootkit.log和rkhunter.log"
 		echo ""
 		echo "#######################################################################"
 		echo ""
@@ -780,7 +784,7 @@ install_aide(){
 	echo "开始安装aide"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	cd
 
 	if [ ! -f "/bin/aide" ]; then
@@ -808,7 +812,7 @@ install_fail2ban(){
 	echo "开始安装fail2ban"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 
 	if [ ! -f "/usr/bin/fail2ban-client" ]; then
 		yum install fail2ban fail2ban-firewalld fail2ban-systemd -q -y
@@ -854,7 +858,7 @@ install_lynis(){
 	echo "开始安装lynis"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	cd
 
 	if [ ! -f "/usr/local/bin/lynis" ]; then
@@ -870,7 +874,7 @@ install_lynis(){
 		lynis update info
 		echo "#######################################################################"
 		echo ""
-		echo "正在检测系统，请耐心等待!"
+		echo "正在检测系统，请耐心等待\!"
 		echo ""
 		echo "#######################################################################"
 		lynis audit system | tee /var/autoboom/log/lynis.log
@@ -896,16 +900,16 @@ install_zsh(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装zsh,请耐心等待!"
+	echo "开始安装zsh\!"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	cd
 
 	if [ -d "/root/.oh-my-zsh" ]; then
 		echo "#######################################################################"
 		echo ""
-		echo "zsh已安装，请使用upgrade_oh_my_zsh升级zsh!"
+		echo "zsh已安装，请使用upgrade_oh_my_zsh升级zsh\!"
 		echo ""
 		echo "#######################################################################"
 		echo ""
@@ -954,12 +958,12 @@ install_zsh(){
 					chsh -s /bin/zsh root
 					echo "#######################################################################"
 					echo ""
-					echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...!"
+					echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...\!"
 					echo "千万不要按Ctrl + C退出脚本!!!"
 					echo ""
 					echo "#######################################################################"
 				else
-					echo "请手动修改默认shell为zsh!"
+					echo "请手动修改默认shell为zsh\!"
 				fi
 			fi
 
@@ -987,7 +991,7 @@ install_shadowsocks(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装Shadowsocks，请耐心等待!"
+	echo "开始安装Shadowsocks\!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -1121,6 +1125,7 @@ install_pptp(){
 	echo "开始配置PPTP VPN:"
 	echo ""
 	echo "#######################################################################"
+	echo "请稍等！"
 	pptpuser=`randusername`
 	pptppasswd=`randpasswd`
 	yum install pptpd -q -y
@@ -1356,10 +1361,10 @@ install_v2ray(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装v2ray，请耐心等待!"
+	echo "开始安装v2ray\!"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	local d_listen_port=8888
 	local v2ray_status=0
 	local ver=`curl -s https://api.github.com/repos/v2ray/v2ray-core/releases/latest --connect-timeout 10| grep 'tag_name' | cut -d\" -f4`
@@ -1430,7 +1435,7 @@ install_supervisor(){
 	echo "开始安装Supervisor"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 
 	verify_file(){
 
@@ -1608,10 +1613,10 @@ install_vlmcsd(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装Vlmcsd..."
+	echo "开始安装Vlmcsd"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 
 	if [ `firewall-cmd --list-ports | grep 1688 | wc -l` -ne 1 ]; then
 		firewall-cmd --zone=public --add-port=1688/tcp --permanent
@@ -3131,7 +3136,7 @@ install_kcptun(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装Kcptun,请耐心等待!"
+	echo "开始安装Kcptun,请耐心等待\!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3150,7 +3155,7 @@ install_kcptun(){
 	show_current_instance_info > /var/autoboom/log/kcptun.log
 	clear
 	echo "#######################################################################"
-	echo "请保存好Kcptun配置!"
+	echo "请保存好Kcptun配置\!"
 	echo ""
 	sed -n '6,18p' /var/autoboom/log/kcptun.log
 	echo "#######################################################################"
@@ -3170,7 +3175,7 @@ install_dnscrypt(){
 	echo "开始安装Dnscrypt"
 	echo ""
 	echo "#######################################################################"
-	echo ""
+	echo "请稍等！"
 	dnscrypt=`randusername`
 	cd
 	git clone -q --recursive git://github.com/cofyc/dnscrypt-wrapper.git
@@ -3313,7 +3318,7 @@ install_vsftp(){
 	echo "Ftp工具"
 	echo ""
 	echo "#######################################################################"
-	echo 清稍等
+	echo "请稍等！"
 	yum -q -y install vsftpd
 	sed -i 's/^anonymous_enable=YES/anonymous_enable=NO/g' /etc/vsftpd/vsftpd.conf
 	echo chroot_local_user=YES >> /etc/vsftpd/vsftpd.conf
@@ -3344,6 +3349,7 @@ clearsystem(){
 	echo "开始清理系统"
 	echo ""
 	echo "#######################################################################"
+	echo "请稍等！"
 	cd
 
 	if [ -f ./autoboom.sh ]; then
@@ -3362,7 +3368,7 @@ clearsystem(){
 	rpm --quiet --rebuilddb
 	echo "#######################################################################"
 	echo ""
-	echo "清理完毕!"
+	echo "清理完毕\!"
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3370,6 +3376,9 @@ clearsystem(){
 }
 
 usage() {
+
+	rootness
+	check_shell
 
 	cat >&1 <<-EOF
 	Usage: autoboom [option]
@@ -3388,12 +3397,16 @@ usage() {
 
 install(){
 
+	rootness
+	check_shell
 	pre_check
 	mainmenu
 }
 
 update(){
 
+	rootness
+	check_shell
 	echo "Check for update..."
 	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
 	chmod +x autoboom.sh
@@ -3419,11 +3432,15 @@ update(){
 
 remove(){
 
+	rootness
+	check_shell
 	rm -rf /usr/local/bin/autoboom /var/autoboom/version.conf
 }
 
 version(){
 
+	rootness
+	check_shell
 	echo "AutoBoom $shell_version"
 }
 
@@ -3458,7 +3475,7 @@ finally(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "搞定了，搞定了，搞定了!"
+	echo "搞定了，搞定了，搞定了\!"
 	echo "要查看刚刚的配置就按任意键继续，否则按Ctrl+C退出脚本."
 	echo ""
 	echo "#######################################################################"
