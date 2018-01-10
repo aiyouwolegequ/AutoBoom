@@ -1,3 +1,4 @@
+# AutoBoom
 wget --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh      
 sh autoboom.sh           
 
