@@ -3608,105 +3608,105 @@ submenu2(){
 mainmenu(){
 
 	clear
-	local 1="\033[41;30m"
-	local 2="\033[0m"
-	local 4=
-	local 5=
-	local 6=
-	local 7=
-	local 8=
-	local 9=
-	local 10=
-	local 11=
-	local 12=
-	local 13=
-	local 14=
-	local 15=
-	local 16=
-	local 17=
+	local a1="\033[41;30m"
+	local a2="\033[0m"
+	local a4=
+	local a5=
+	local a6=
+	local a7=
+	local a8=
+	local a9=
+	local a10=
+	local a11=
+	local a12=
+	local a13=
+	local a14=
+	local a15=
+	local a16=
+	local a17=
 
 	if [ ! -f "/bin/rkhunter" ] && [ ! -f "/usr/local/bin/chkrootkit" ]; then
-		4=`echo "(4) 安装ckrootkit和rkhunter"`
+		a4=`echo "(4) 安装ckrootkit和rkhunter"`
 	else
-		4=`echo -e "(4) $1已安装ckrootkit和rkhunter$2"`
+		a4=`echo -e "(4) $a1已安装ckrootkit和rkhunter$a2"`
 	fi
 
 	if [ ! -f "/usr/bin/fail2ban-client" ]; then
-		5=`echo "(5) 安装fail2ban"`
+		a5=`echo "(5) 安装fail2ban"`
 	else
-		5=`echo -e "(5) $1已安装fail2ban$2"`
+		a5=`echo -e "(5) $a1已安装fail2ban$a2"`
 	fi
 
 	if [ ! -f "/usr/local/bin/lynis" ]; then
-		6=`echo "(6) 安装lynis"`
+		a6=`echo "(6) 安装lynis"`
 	else
-		6=`echo -e "(6) $1已安装lynis$2"`
+		a6=`echo -e "(6) $a1已安装lynis$a2"`
 	fi
 
-	if [ -z `command -v upgrade_oh_my_zsh` ]; then
-		7=`echo "(7) 安装zsh"`
+	if [ ! -d "/root/.oh-my-zsh" ]; then
+		a7=`echo "(7) 安装zsh"`
 	else
-		7=`echo "(7) $1已安装zsh$2"`
+		a7=`echo -e "(7) $a1已安装zsh$a2"`
 	fi
 
 	if [ ! -e "/etc/shadowsocks-libev/config.json" ]; then
-		8=`echo "(8) 安装shadowsocks"`
+		a8=`echo "(8) 安装shadowsocks"`
 	else
-		8=`echo -e "(8) $1已安装shadowsocks$2"`
+		a8=`echo -e "(8) $a1已安装shadowsocks$a2"`
 	fi
 
 	if [ -z `command -v l2tp` ]; then
-		9=`echo "(9) 安装l2tp""`
+		a9=`echo "(9) 安装l2tp""`
 	else
-		9=`echo "(9) $1已安装l2tp$2"`
+		a9=`echo -e "(9) $a1已安装l2tp$a2"`
 	fi
 
 	if [ ! -e "/etc/v2ray/config.json" ]; then
-		10=`echo "(10) 安装v2ray"`
+		a10=`echo "(10) 安装v2ray"`
 	else
-		10=`echo -e "(10) $1已安装v2ray$2"`
+		a10=`echo -e "(10) $a1已安装v2ray$a2"`
 	fi
 
 	if [ ! -e "/etc/supervisor/supervisord.conf" ]; then
-		11=`echo "(11) 安装supervisor"`
+		a11=`echo "(11) 安装supervisor"`
 	else
-		11=`echo "(11) $1已安装supervisor$2"`
+		a11=`echo -e "(11) $a1已安装supervisor$a2"`
 	fi
 
 	if [ -z `command -v vlmcsd` ]; then
-		12=`echo "(12) 安装vlmcsd"`
+		a12=`echo "(12) 安装vlmcsd"`
 	else
-		12=`echo "(12) $1已安装vlmcsd$2"`
+		a12=`echo -e "(12) $a1已安装vlmcsd$a2"`
 	fi
 
 	if [ -z `command -v kcptun` ]; then
-		13=`echo "(13) 安装kcptun"`
+		a13=`echo "(13) 安装kcptun"`
 	else
-		13=`echo "(13) $1已安装kcptun$2"`
+		a13=`echo -e "(13) $a1已安装kcptun$a2"`
 	fi
 
 	if [ -z `command -v dnscrypt-wrapper` ]; then
-		14=`echo "(14) 安装dnscrypt"`
+		a14=`echo "(14) 安装dnscrypt"`
 	else
-		14=`echo "(14) $1已安装dnscrypt$2"`
+		a14=`echo -e "(14) $a1已安装dnscrypt$a2"`
 	fi
 
 	if [ ! -e "/etc/ppp/options.pptpd" ]; then
-		15=`echo "(15) 安装pptp"`
+		a15=`echo "(15) 安装pptp"`
 	else
-		15=`echo "(15) $1已安装pptp$2"`
+		a15=`echo -e "(15) $a1已安装pptp$a2"`
 	fi
 
 	if [ -z `command -v aide` ]; then
-		16=`echo "(16) 安装aide""`
+		a16=`echo "(16) 安装aide""`
 	else
-		16=`echo "(16) $1已安装aide$2"`
+		a16=`echo -e "(16) $a1已安装aide$a2"`
 	fi
 
 	if [ ! -e "/etc/vsftpd/vsftpd.conf" ]; then
-		17=`echo "(17) 安装vsftp"`
+		a17=`echo "(17) 安装vsftp"`
 	else
-		17=`echo "(17) $1已安装vsftp$2"`
+		a17=`echo -e "(17) $a1已安装vsftp$a2"`
 	fi
 
 	echo "#######################################################################"
@@ -3717,20 +3717,20 @@ mainmenu(){
 	echo "(1) 默认全部安装"
 	echo "(2) 升级系统，#升级内核，清理系统"
 	echo "(3) 更换root密码，新增ssh免密码验证用户"
-	echo $4
-	echo $5
-	echo $6
-	echo $7
-	echo $8
-	echo $9
-	echo $10
-	echo $11
-	echo $12
-	echo $13
-	echo $14
-	echo $15
-	echo $16
-	echo $17
+	echo "$a4"
+	echo "$a5"
+	echo "$a6"
+	echo "$a7"
+	echo "$a8"
+	echo "$a9"
+	echo "$a10"
+	echo "$a11"
+	echo "$a12"
+	echo "$a13"
+	echo "$a14"
+	echo "$a15"
+	echo "$a16"
+	echo "$a17"
 	echo ""
 	echo "#######################################################################"
 
