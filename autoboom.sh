@@ -3186,6 +3186,7 @@ install_dnscrypt(){
 	ldconfig
 	sleep 1
 	cd
+	rm -rf dnscrypt-wrapper
 	mkdir ~/.dns
 	cd ~/.dns
 	dnscrypt-wrapper --gen-provider-keypair > /var/autoboom/log/dns.log
