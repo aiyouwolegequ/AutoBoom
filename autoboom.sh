@@ -342,7 +342,7 @@ pre_install(){
 	done
 
 	yum makecache -q
-	yum install asciidoc autoconf automake bind-utils bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel pcre-devel policycoreutils-python ppp psmisc python34 python34-devel python-devel python-pip python-setuptools readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib-devel libcurl-devel -q -y
+	yum install asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel -q -y
 	ldconfig
 	wget -q https://bootstrap.pypa.io/get-pip.py
 	python get-pip.py
