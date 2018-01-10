@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v2.7
+shell_version=v2.8
 pre_install_version=v1.3
 
 rootness(){
@@ -15,13 +15,15 @@ rootness(){
 check_shell(){
 
 	if [ ! -f "/bin/zsh" ];then
-		echo "错误:需要zsh\!安装zsh中\!"
+		echo "错误:需要zsh！安装zsh中！"
 		yum install zsh -q -y
-		echo "zsh安装完毕\!"
+		echo "zsh安装完毕！"
 	fi
 
-	if [ `echo $0` != "zsh" ];then
-		echo "请使用env zsh切换到zsh后再执行脚本\!"
+	local shell=`ps -ef | grep zsh | grep -v grep`
+
+	if [ -z "$shell" ];then
+		echo "请使用env zsh切换到zsh后再执行脚本！"
 		exit 1
 	fi
 }
