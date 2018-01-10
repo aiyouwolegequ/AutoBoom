@@ -3554,6 +3554,7 @@ submenu1(){
 		3)
 			#updatekernel
 			#rebootcheck
+			submenu1
 			;;
 		4)
 			clearsystem
@@ -3564,6 +3565,7 @@ submenu1(){
 			#updatekernel
 			clearsystem
 			#rebootcheck
+			submenu1
 			;;
 	esac
 }
