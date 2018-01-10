@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.0
-pre_install_version=v1.3
+shell_version=v3.1
+pre_install_version=v1.4
 
 rootness(){
 
@@ -3316,7 +3316,7 @@ install_vsftp(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装Ftp"
+	echo "开始安装vsftp"
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
@@ -3335,7 +3335,7 @@ install_vsftp(){
 	systemctl -l | grep vsftpd | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
 	echo ""
-	echo "Ftp安装完毕."
+	echo "vsftp安装完毕."
 	echo ""
 	echo "#######################################################################"
 	echo ""
