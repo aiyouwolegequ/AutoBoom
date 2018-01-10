@@ -18,7 +18,7 @@ sh autoboom.sh
 (14) 安装dnscrypt        
 (15) 安装pptp        
 (16) 安装aide        
-(17) 安装pentest tools        
+(17) 安装vsftp       
 
 Supervisor 相关命令:        
 service supervisord {start|stop|restart|status}        
