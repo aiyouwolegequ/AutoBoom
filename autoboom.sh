@@ -3316,7 +3316,7 @@ install_vsftp(){
 	clear
 	echo "#######################################################################"
 	echo ""
-	echo "Ftp工具"
+	echo "开始安装Ftp"
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
@@ -3336,6 +3336,58 @@ install_vsftp(){
 	echo "#######################################################################"
 	echo ""
 	echo "Ftp安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
+}
+
+install_ruby_2.4(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装ruby 2.4.1"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+	curl -sSL https://rvm.io/mpapis.asc | gpg --import -
+	curl -L get.rvm.io | bash -s stable
+	source /etc/profile.d/rvm.sh
+	rvm reload
+	rvm requirements run
+	rvm install "ruby-2.4.1"
+	rvm use 2.4.1 --default
+	ruby -v
+	gem -v
+	echo "#######################################################################"
+	echo ""
+	echo "ruby 2.4.1安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
+}
+
+install_docker(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装docker"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+	yum remove docker docker-common docker-selinux docker-engine -q -y
+	yum install yum-utils device-mapper-persistent-data lvm2 -q -y
+	yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+	yum-config-manager --enable docker-ce-edge
+	yum-config-manager --enable docker-ce-test
+	yum-config-manager --disable docker-ce-edge
+	yum install docker-ce -q -y
+	systemctl start docker
+	systemctl -l | grep docker | awk '{print $1,$2,$3,$4}'
+	echo "#######################################################################"
+	echo ""
+	echo "docker安装完毕."
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -3456,6 +3508,8 @@ install_all(){
 	install_dnscrypt
 	install_aide
 	install_vsftp
+	install_ruby_2.4
+	install_docker
 	clearsystem
 	finally
 }
@@ -3626,6 +3680,8 @@ mainmenu(){
 	local a15=
 	local a16=
 	local a17=
+	local a18=
+	local a19=
 
 	if [ ! -f "/bin/rkhunter" ] && [ ! -f "/usr/local/bin/chkrootkit" ]; then
 		a4=`echo "(4) 安装ckrootkit和rkhunter"`
@@ -3711,6 +3767,18 @@ mainmenu(){
 		a17=`echo -e "(17) $a1已安装vsftp$a2"`
 	fi
 
+	if [ ! -e "/usr/local/rvm/rubies/ruby-2.4.1/bin/ruby" ]; then
+		a18=`echo "(18) 安装ruby 2.4.1"`
+	else
+		a18=`echo -e "(18) $a1已安装ruby 2.4.1$a2"`
+	fi
+
+	if [ -z `command -v docker` ]; then
+		a16=`echo "(16) 安装docker""`
+	else
+		a16=`echo -e "(16) $a1已安装docker$a2"`
+	fi
+
 	echo "#######################################################################"
 	echo ""
 	echo "进入正式安装......"
@@ -3733,6 +3801,8 @@ mainmenu(){
 	echo "$a15"
 	echo "$a16"
 	echo "$a17"
+	echo "$a18"
+	echo "$a19"
 	echo ""
 	echo "#######################################################################"
 
@@ -3807,6 +3877,14 @@ mainmenu(){
 			;;
 		17)
 			install_vsftp
+			mainmenu
+			;;
+		18)
+			install_ruby_2.4
+			mainmenu
+			;;
+		19)
+			install_docker
 			mainmenu
 			;;
 		*)
