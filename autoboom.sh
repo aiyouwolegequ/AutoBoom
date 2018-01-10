@@ -17,7 +17,7 @@ check_shell(){
 	if [ ! -f "/bin/zsh" ];then
 		echo "错误:需要zsh！安装zsh中！"
 		rm -rf /var/run/yum.pid
-		rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 		yum install zsh -q -y
 		echo "zsh安装完毕！"
 	fi
@@ -313,8 +313,8 @@ pre_install(){
 	fi
 
 	wget -q https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-	rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-	rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+	rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+	rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	yum groupinstall "Development Tools" -q -y
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
