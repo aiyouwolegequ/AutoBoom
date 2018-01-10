@@ -337,7 +337,8 @@ pre_install(){
 
 	for a in mirrorlist metalink
 	do
-		while [ `rpm -qa |grep epel-release | wc -l` -eq 1 ] && [ `cat /etc/yum.repos.d/epel.repo | grep "$a" | wc -l` -ne 0 ]; do
+		while [ `rpm -qa |grep epel-release | wc -l` -eq 1 ] && [ `cat /etc/yum.repos.d/epel.repo | grep "$a" | wc -l` -ne 0 ]
+		do
 			sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel.repo
 			sed -i 's/^'${a}'/#'${a}'/g' /etc/yum.repos.d/epel.repo
 			break
