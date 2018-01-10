@@ -17,6 +17,7 @@ check_shell(){
 	if [ ! -f "/bin/zsh" ];then
 		echo "错误:需要zsh！安装zsh中！"
 		rm -rf /var/run/yum.pid
+		rpm --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 		yum install zsh -q -y
 		echo "zsh安装完毕！"
 	fi
