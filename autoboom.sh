@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.2
-pre_install_version=v1.4
+shell_version=v3.3
+pre_install_version=v1.5
 
 rootness(){
 
@@ -924,20 +924,17 @@ install_zsh(){
 
 		if [ -d "/root/.oh-my-zsh" ]; then
 			if [ -f ~/.zshrc ] || [ -h ~/.zshrc ]; then
-				mv ~/.zshrc ~/.zshrc.pre-oh-my-zsh
+				mv ~/.zshrc ~/.zshrc.bak
 			fi
 
 			cp /root/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
-			sed "/^export ZSH=/ c\\
-			export ZSH=/root/.oh-my-zsh
-			" ~/.zshrc > ~/.zshrc-omztemp
-			mv -f ~/.zshrc-omztemp ~/.zshrc
+			sed -i "/^export ZSH=/c \export ZSH=/root/.oh-my-zsh" zshrc
 			cd /root/.oh-my-zsh/themes
 			git clone -q https://github.com/dracula/zsh.git
 			mv zsh/dracula.zsh-theme .
 			rm -rf zsh
 			sed -i 's/robbyrussell/dracula/g' ~/.zshrc
-			sed -i 's/plugins=(git)/plugins=(sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search)/g' ~/.zshrc
+			sed -i 's/git/sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search/g' ~/.zshrc
 			cd /root/.oh-my-zsh/plugins
 			git clone -q https://github.com/zsh-users/zsh-syntax-highlighting.git
 			git clone -q https://github.com/zsh-users/zsh-autosuggestions.git
@@ -954,9 +951,9 @@ install_zsh(){
 			alias pip3="python3 -m pip"
 			EOF
 
-			TEST_CURRENT_SHELL=$(expr "$SHELL" : '.*/\(.*\)')
+			test_current_shell=$(expr "$SHELL" : '.*/\(.*\)')
 
-			if [ "$TEST_CURRENT_SHELL" != "zsh" ]; then
+			if [ "$test_current_shell" != "zsh" ]; then
 				if hash chsh >/dev/null 2>&1; then
 					clear
 					cd
