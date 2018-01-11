@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.3
+shell_version=v3.4
 pre_install_version=v1.5
 
 rootness(){
@@ -3344,7 +3344,7 @@ install_vsftp(){
 	any_key_to_continue
 }
 
-install_ruby_2.4(){
+install_ruby(){
 
 	echo "#######################################################################"
 	echo ""
@@ -3510,7 +3510,7 @@ install_all(){
 	install_dnscrypt
 	install_aide
 	install_vsftp
-	install_ruby_2.4
+	install_ruby
 	install_docker
 	clearsystem
 	finally
@@ -3882,7 +3882,7 @@ mainmenu(){
 			mainmenu
 			;;
 		18)
-			install_ruby_2.4
+			install_ruby
 			mainmenu
 			;;
 		19)
