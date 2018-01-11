@@ -4,6 +4,14 @@ sh autoboom.sh
 
 需要root权限以及zsh！！！             
 
+Usage: autoboom [option]          
+[option]: (-l,list|-u,update|-r,remove|-h,help|-v,version)              
+-l,list                 列出所有项目                  
+-u,update               升级到最新             
+-r,remove               卸载         
+-h,help                 救命啊                  
+-v,version              显示当前版本                
+
 (0) 退出        
 (1) 默认全部安装        
 (2) 升级系统，升级内核，清理系统        
