@@ -27,6 +27,7 @@ check_shell(){
 		exit 1
 	fi
 }
+
 get_char(){
 
 	SAVEDSTTY=`stty -g`
