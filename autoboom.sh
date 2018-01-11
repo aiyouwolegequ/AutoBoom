@@ -1,7 +1,7 @@
 #!/bin/bash
-export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.4
+shell_version=v3.5
 pre_install_version=v1.5
 
 rootness(){
@@ -298,7 +298,7 @@ pre_install(){
 	EOF
 
 	cat > /etc/profile<<-EOF
-	export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+	export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 	export LC_ALL=en_US.UTF-8
 	EOF
 
@@ -941,7 +941,7 @@ install_zsh(){
 			git clone -q https://github.com/zsh-users/zsh-history-substring-search.git
 
 			cat >> /root/.zshrc<<-EOF
-			export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+			export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 			alias vizsh="vim ~/.zshrc"
 			alias sourcezsh="source ~/.zshrc"
 			alias cat="pygmentize -g"
