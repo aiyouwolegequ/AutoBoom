@@ -31,7 +31,9 @@ Usage: autoboom [option]
 (16) 安装aide        
 (17) 安装vsftp       
 (18) 安装ruby 2.4.1               
-(17) 安装docker                 
+(19) 安装docker                 
+(20) 安装nmaphenc         
+(21) 安装proxychains4             
 
 Supervisor 相关命令:        
 service supervisord {start|stop|restart|status}        
