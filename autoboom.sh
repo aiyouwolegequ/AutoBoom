@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.6
+shell_version=v3.6.1
 pre_install_version=v1.5
 
 rootness(){
@@ -3832,15 +3832,15 @@ mainmenu(){
 	fi
 
 	if [ -z `command -v nmap` ] && [ -z `command -v nc` ]; then
-		a19=`echo "(20) 安装nmap和nc"`
+		a20=`echo "(20) 安装nmap和nc"`
 	else
-		a19=`echo -e "(20) $a1已安装nmap和nc$a2"`
+		a20=`echo -e "(20) $a1已安装nmap和nc$a2"`
 	fi
 
 	if [ -z `command -v proxychains4` ]; then
-		a19=`echo "(21) 安装proxychains4"`
+		a21=`echo "(21) 安装proxychains4"`
 	else
-		a19=`echo -e "(21) $a1已安装proxychains4$a2"`
+		a21=`echo -e "(21) $a1已安装proxychains4$a2"`
 	fi
 
 	echo "#######################################################################"
