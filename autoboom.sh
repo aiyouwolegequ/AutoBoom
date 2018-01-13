@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.5
+shell_version=v3.6
 pre_install_version=v1.5
 
 rootness(){
@@ -3341,7 +3341,7 @@ install_vsftp(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	any_key_to_continue
+	auto_continue
 }
 
 install_ruby(){
@@ -3367,7 +3367,7 @@ install_ruby(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	any_key_to_continue
+	auto_continue
 }
 
 install_docker(){
@@ -3393,7 +3393,53 @@ install_docker(){
 	echo ""
 	echo "#######################################################################"
 	echo ""
-	any_key_to_continue
+	auto_continue
+}
+
+install_nmap_nc(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装nmap,nc"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+	wget https://nmap.org/dist/ncat-7.60-1.x86_64.rpm
+	wget https://nmap.org/dist/nmap-7.60-1.x86_64.rpm
+	rpm -i ncat-7.60-1.x86_64.rpm nmap-7.60-1.x86_64.rpm
+	ln -s /usr/bin/ncat /usr/bin/nc
+	rm -rf ncat-7.60-1.x86_64.rpm nmap-7.60-1.x86_64.rpm
+	echo "#######################################################################"
+	echo ""
+	echo "nmap,nc安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	auto_continue
+}
+
+install_proxychains4(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装proxychains4"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+	git clone -q https://github.com/rofl0r/proxychains-ng.git /usr/src/proxychains-ng
+	cd /usr/src/proxychains-ng
+	./configure
+	make && make install
+	./tools/install.sh -D -m 644 libproxychains4.so /usr/local/lib/libproxychains4.so
+	./tools/install.sh -D -m 755 proxychains4 /usr/local/bin/proxychains4
+	./tools/install.sh -D -m 644 src/proxychains.conf /usr/local/etc/proxychains.conf
+	cd
+	echo "#######################################################################"
+	echo ""
+	echo "proxychains4安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
 }
 
 clearsystem(){
@@ -3512,6 +3558,8 @@ install_all(){
 	install_vsftp
 	install_ruby
 	install_docker
+	install_nmap_nc
+	install_proxychains4
 	clearsystem
 	finally
 }
@@ -3684,6 +3732,8 @@ mainmenu(){
 	local a17=
 	local a18=
 	local a19=
+	local a20=
+	local a21=
 
 	if [ ! -f "/bin/rkhunter" ] && [ ! -f "/usr/local/bin/chkrootkit" ]; then
 		a4=`echo "(4) 安装ckrootkit和rkhunter"`
@@ -3781,6 +3831,18 @@ mainmenu(){
 		a19=`echo -e "(19) $a1已安装docker$a2"`
 	fi
 
+	if [ -z `command -v nmap` ] && [ -z `command -v nc` ]; then
+		a19=`echo "(20) 安装nmap和nc"`
+	else
+		a19=`echo -e "(20) $a1已安装nmap和nc$a2"`
+	fi
+
+	if [ -z `command -v proxychains4` ]; then
+		a19=`echo "(21) 安装proxychains4"`
+	else
+		a19=`echo -e "(21) $a1已安装proxychains4$a2"`
+	fi
+
 	echo "#######################################################################"
 	echo ""
 	echo "进入正式安装......"
@@ -3805,6 +3867,8 @@ mainmenu(){
 	echo "$a17"
 	echo "$a18"
 	echo "$a19"
+	echo "$a20"
+	echo "$a21"
 	echo ""
 	echo "#######################################################################"
 
@@ -3887,6 +3951,14 @@ mainmenu(){
 			;;
 		19)
 			install_docker
+			mainmenu
+			;;
+		20)
+			install_nmap_nc
+			mainmenu
+			;;
+		21)
+			install_proxychains4
 			mainmenu
 			;;
 		*)
