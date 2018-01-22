@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.6.1
-pre_install_version=v1.5
+shell_version=v3.7
+pre_install_version=v1.6
 
 rootness(){
 
@@ -316,10 +316,12 @@ pre_install(){
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release" ];then
 		wget -q https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	fi
-	
-	rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-	yum groupinstall "Development Tools" -q -y
+
+	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
+		yum groupinstall "Development Tools" -q -y
+	fi
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
 		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
