@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.7
+shell_version=v3.8
 pre_install_version=v1.6
 
 rootness(){
@@ -921,70 +921,42 @@ install_zsh(){
 		echo "#######################################################################"
 		echo ""
 	else
-		umask g-w,o-w
-		env git clone -q --depth=1 https://github.com/robbyrussell/oh-my-zsh.git /root/.oh-my-zsh
+		yum install zsh -q -y
+		git clone -q --depth=1 https://github.com/robbyrussell/oh-my-zsh.git /root/.oh-my-zsh
+		cp /root/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
+		cd /root/.oh-my-zsh/themes
+		git clone -q https://github.com/dracula/zsh.git
+		mv zsh/dracula.zsh-theme .
+		rm -rf zsh
+		cd /root/.oh-my-zsh/plugins
+		git clone -q https://github.com/zsh-users/zsh-syntax-highlighting.git
+		git clone -q https://github.com/zsh-users/zsh-autosuggestions.git
+		git clone -q https://github.com/zsh-users/zsh-history-substring-search.git
 
-		if [ -d "/root/.oh-my-zsh" ]; then
-			if [ -f ~/.zshrc ] || [ -h ~/.zshrc ]; then
-				mv ~/.zshrc ~/.zshrc.bak
-			fi
+		cat > /root/.zshrc <<-EOF
+		export ZSH=/root/.oh-my-zsh
+		ZSH_THEME="dracula"
+		plugins=(sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search)
+		source /root/.oh-my-zsh/oh-my-zsh.sh
+		export PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+		alias vizsh="vim ~/.zshrc"
+		alias sourcezsh="source ~/.zshrc"
+		EOF
 
-			cp /root/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
-			sed -i "/^export ZSH=/c \export ZSH=/root/.oh-my-zsh" zshrc
-			cd /root/.oh-my-zsh/themes
-			git clone -q https://github.com/dracula/zsh.git
-			mv zsh/dracula.zsh-theme .
-			rm -rf zsh
-			sed -i 's/robbyrussell/dracula/g' ~/.zshrc
-			sed -i 's/git/sudo zsh-syntax-highlighting git autojump web-search zsh_reload colored-man-pages zsh-autosuggestions zsh-history-substring-search/g' ~/.zshrc
-			cd /root/.oh-my-zsh/plugins
-			git clone -q https://github.com/zsh-users/zsh-syntax-highlighting.git
-			git clone -q https://github.com/zsh-users/zsh-autosuggestions.git
-			git clone -q https://github.com/zsh-users/zsh-history-substring-search.git
-
-			cat >> /root/.zshrc<<-EOF
-			export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-			alias vizsh="vim ~/.zshrc"
-			alias sourcezsh="source ~/.zshrc"
-			alias cat="pygmentize -g"
-			alias py="python"
-			alias pip="python -m pip"
-			alias py3="python3"
-			alias pip3="python3 -m pip"
-			EOF
-
-			test_current_shell=$(expr "$SHELL" : '.*/\(.*\)')
-
-			if [ "$test_current_shell" != "zsh" ]; then
-				if hash chsh >/dev/null 2>&1; then
-					clear
-					cd
-					chsh -s /bin/zsh root
-					echo "#######################################################################"
-					echo ""
-					echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...！"
-					echo "千万不要按Ctrl + C退出脚本!!!"
-					echo ""
-					echo "#######################################################################"
-				else
-					echo "请手动修改默认shell为zsh！"
-				fi
-			fi
-
-			env zsh
-			echo "#######################################################################"
-			echo ""
-			echo "Zsh安装完毕，脚本完成后使用env zsh手动切换shell为zsh."
-			echo ""
-			echo "#######################################################################"
-			echo ""
-		else
-			echo "#######################################################################"
-			echo ""
-			echo "zsh安装失败，请稍后再试."
-			echo ""
-			echo "#######################################################################"
-		fi
+		chsh -s /bin/zsh root
+		echo "#######################################################################"
+		echo ""
+		echo -e "请手动输入\033[41;30mexit\033[0m继续执行脚本...！"
+		echo "千万不要按Ctrl + C退出脚本!!!"
+		echo ""
+		echo "#######################################################################"
+		env zsh
+		echo "#######################################################################"
+		echo ""
+		echo "Zsh安装完毕，脚本完成后使用env zsh手动切换shell为zsh."
+		echo ""
+		echo "#######################################################################"
+		echo ""
 	fi
 
 	auto_continue
