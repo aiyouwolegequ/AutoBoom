@@ -338,16 +338,6 @@ pre_install(){
 		fi
 	done
 
-	for a in mirrorlist metalink
-	do
-		while [ `rpm -qa |grep epel-release | wc -l` -eq 1 ] && [ `cat /etc/yum.repos.d/epel.repo | grep "$a" | wc -l` -ne 0 ]
-		do
-			sed -i "s/^#baseurl/baseurl/g" /etc/yum.repos.d/epel.repo
-			sed -i 's/^'${a}'/#'${a}'/g' /etc/yum.repos.d/epel.repo
-			break
-		done
-	done
-
 	yum makecache -q
 	yum install asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel -q -y
 	ldconfig
@@ -972,7 +962,7 @@ install_shadowsocks(){
 	echo "#######################################################################"
 	echo ""
 	sspasswd=`randpasswd`
-	local listen_port=999
+	local listen_port=9999
 	read -p "默认设置ss端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
 	case "$input" in
 		y|Y)
@@ -994,102 +984,53 @@ install_shadowsocks(){
 			;;
 	esac
 
-	cd
-	git clone -q https://github.com/shadowsocks/shadowsocks-libev.git
+	cd /etc/yum.repos.d/
+	curl -O https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
+	yum install shadowsocks-libev -y
 
-	if [ -d "/root/shadowsocks-libev" ]; then
-		cd shadowsocks-libev
-		git submodule update --init --recursive -q
-		./autogen.sh
-		./configure --with-sodium-include=/usr/local/include --with-sodium-lib=/usr/local/lib --with-mbedtls-include=/usr/include --with-mbedtls-lib=/usr/lib
-		make && make install
-		cd
-		rm -rf shadowsocks-libev
+	cat >/etc/shadowsocks-libev/config.json<<-EOF
+	{
+	"server":"0.0.0.0",
+	"server_port":"9999",
+	"local_port":1080,
+	"local_address":"127.0.0.1",
+	"password":"${sspasswd}",
+	"nameserver": "8.8.8.8",
+	"timeout":"600",
+	"method":"aes-256-cfb"
+	}
+	EOF
 
-		if [ ! -d "/etc/shadowsocks-libev/" ]; then
-			mkdir /etc/shadowsocks-libev/
-		fi
+	cat >/etc/sysconfig/shadowsocks-libev<<-EOF
+	START=yes
+	CONFFILE="/etc/shadowsocks-libev/config.json"
+	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port -d 8.8.8.8"
+	MAXFD=32768
+	EOF
 
-		cat > /etc/shadowsocks-libev/config.json<<-EOF
-		{
-			"server":"0.0.0.0",
-			"server_port":"${listen_port}",
-			"local_port":1080,
-			"local_address":"127.0.0.1",
-			"password":"${sspasswd}",
-			"nameserver": "8.8.8.8",
-			"timeout":"600",
-			"method":"aes-256-cfb"
-		}
-		EOF
-
-		cat > /etc/sysconfig/shadowsocks-libev<<-EOF
-		START=yes
-		CONFFILE="/etc/shadowsocks-libev/config.json"
-		DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port -d 8.8.8.8"
-		USER=root
-		GROUP=root
-		MAXFD=32768
-		EOF
-
-		cat > /usr/lib/systemd/system/shadowsocks-libev.service<<-EOF
-		[Unit]
-		Description=Shadowsocks-libev Default Server Service
-		After=network.target
-
-		[Service]
-		Type=simple
-		PIDFile=/var/run/shadowsocks.pid
-		EnvironmentFile=/etc/sysconfig/shadowsocks-libev
-		User=root
-		Group=root
-		LimitNOFILE=32768
-		ExecStart=/usr/local/bin/ss-server -a \$USER -c \$CONFFILE \$DAEMON_ARGS
-
-		[Install]
-		WantedBy=multi-user.target
-		EOF
-
-		cat > /etc/shadowsocks-libev/local.acl<<-EOF
-		[white_list]
-		127.0.0.1
-		::1
-		10.0.0.0/8
-		172.16.0.0/12
-		192.168.0.0/16
-		120.41.0.0/16
-		EOF
-
-		systemctl daemon-reload
-		systemctl start shadowsocks-libev.service
-		systemctl enable shadowsocks-libev.service
-		systemctl -l | grep shadowsocks | awk '{print $1,$2,$3,$4}'
-		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/shadowsocks_bin.sh
-		chmod +x shadowsocks_bin.sh
-		./shadowsocks_bin.sh
-		rm -rf ./shadowsocks_bin.sh
-		echo "#######################################################################"
-		echo ""
-		echo "Shadowsocks安装完毕."
-		echo ""
-		echo "#######################################################################"
-		echo ""
-		echo "Shadowsocks的相关配置:"
-		echo -e "Server IP:\033[41;30m${IP}\033[0m"
-		echo -e "Port:\033[41;30m${listen_port}\033[0m"
-		echo -e "Password:\033[41;30m${sspasswd}\033[0m"
-		echo -e "Encryption:\033[41;30maes-256-cfb\033[0m"
-		echo ""
-		echo "#######################################################################"
-		echo ""
-	else
-		echo "#######################################################################"
-		echo ""
-		echo "Shadowsocks安装失败，请稍后再试."
-		echo ""
-		echo "#######################################################################"
-	fi
-
+	systemctl daemon-reload
+	systemctl restart shadowsocks-libev.service
+	systemctl enable shadowsocks-libev.service
+	systemctl status shadowsocks-libev.service
+	systemctl -l | grep shadowsocks | awk '{print $1,$2,$3,$4}'
+	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/shadowsocks_bin.sh
+	chmod +x shadowsocks_bin.sh
+	./shadowsocks_bin.sh
+	rm -rf ./shadowsocks_bin.sh
+	echo "#######################################################################"
+	echo ""
+	echo "Shadowsocks安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	echo "Shadowsocks的相关配置:"
+	echo -e "Server IP:\033[41;30m${IP}\033[0m"
+	echo -e "Port:\033[41;30m${listen_port}\033[0m"
+	echo -e "Password:\033[41;30m${sspasswd}\033[0m"
+	echo -e "Encryption:\033[41;30maes-256-cfb\033[0m"
+	echo ""
+	echo "#######################################################################"
+	echo ""
 	any_key_to_continue
 }
 
