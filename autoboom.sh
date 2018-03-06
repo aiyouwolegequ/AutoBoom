@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.8
-pre_install_version=v1.6
+shell_version=v3.9
+pre_install_version=v1.7
 
 rootness(){
 
