@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v3.9
-pre_install_version=v1.7
+shell_version=v4.0
+pre_install_version=v1.8
 
 rootness(){
 
@@ -294,7 +294,7 @@ pre_install(){
 	LANG="en_US.UTF-8"
 
 	cat > /etc/resolv.conf<<-EOF
-	nameserver 8.8.8.8
+	nameserver 1.1.1.1
 	EOF
 
 	cat > /etc/profile<<-EOF
@@ -305,7 +305,12 @@ pre_install(){
 	source /etc/profile
 	hostnamectl set-hostname ${IP}
 	rm -rf /var/run/yum.pid
+	rm -rf /etc/yum.repos.d/CentOS-Base.repo.bak
+	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+	wget -q -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo
 	yum clean all -q
+	yum makecache -q
+
 
 	if [ ! -f "/etc/yum.conf.bak" ]; then
 		cp /etc/yum.conf /etc/yum.conf.bak
@@ -429,7 +434,6 @@ updatesystem(){
 	auto_continue
 }
 
-<<!
 updatekernel(){
 
 	clear
@@ -458,7 +462,6 @@ updatekernel(){
 	echo ""
 	auto_continue
 }
-!
 
 changerootpasswd(){
 
@@ -3454,7 +3457,7 @@ install_all(){
 	clear
 	tunavailable
 	updatesystem
-	#updatekernel
+	updatekernel
 	changerootpasswd
 	add_newuser
 	install_ckrootkit_rkhunter
@@ -3571,8 +3574,8 @@ submenu1(){
 			submenu1
 			;;
 		3)
-			#updatekernel
-			#rebootcheck
+			updatekernel
+			rebootcheck
 			submenu1
 			;;
 		4)
@@ -3581,9 +3584,9 @@ submenu1(){
 			;;
 		*)
 			updatesystem
-			#updatekernel
+			updatekernel
 			clearsystem
-			#rebootcheck
+			rebootcheck
 			submenu1
 			;;
 	esac
