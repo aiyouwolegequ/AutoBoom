@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v4.2
-pre_install_version=v2.0
+shell_version=v4.3
+pre_install_version=v2.1
 
 rootness(){
 
@@ -268,7 +268,7 @@ pre_check(){
 
 	local pre_version=`cat /var/autoboom/version.conf | grep pre_install_version | awk '{print $2}'`
 
-	if [ -n "$pre_version"  ]; then
+	if [ -z "$pre_version"  ]; then
 		if [ "$pre_version" != "$pre_install_version" ]; then
 			sed -i "s/pre_install_version $pre_version/pre_install_version $pre_install_version/g" /var/autoboom/version.conf
 			set_sysctl
@@ -3433,7 +3433,6 @@ update(){
 			fi
 
 			mv -f autoboom.sh /usr/local/bin/autoboom
-			pre_check
 			echo "update success ^_^"
 			sed -i "s/shell_version $pre_version/shell_version $version/g" /var/autoboom/version.conf
 			rm -rf ./autoboom.sh
