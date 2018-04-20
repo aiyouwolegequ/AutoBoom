@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v4.1
-pre_install_version=v1.9
+shell_version=v4.2
+pre_install_version=v2.0
 
 rootness(){
 
@@ -304,17 +304,14 @@ pre_install(){
 	source /etc/profile
 	hostnamectl set-hostname ${IP}
 	rm -rf /var/run/yum.pid
-	rm -rf /etc/yum.repos.d/CentOS-Base.repo.bak
-	mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-	wget -q -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo
-	yum clean all -q
-	yum makecache -q
-
-
+	
 	if [ ! -f "/etc/yum.conf.bak" ]; then
 		cp /etc/yum.conf /etc/yum.conf.bak
 		echo "minrate=1" >> /etc/yum.conf
 		echo "timeout=300" >> /etc/yum.conf
+		rm -rf /etc/yum.repos.d/CentOS-Base.repo.bak
+		mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
+		wget -q -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo
 	fi
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release" ];then
@@ -323,13 +320,16 @@ pre_install(){
 		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	fi
 
-	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
-		yum groupinstall "Development Tools" -q -y
-	fi
-
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
 		rpm --quiet --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
 		rpm --quiet -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+	fi
+
+	yum clean all -q
+	yum makecache -q
+
+	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
+		yum groupinstall "Development Tools" -q -y
 	fi
 
 	yum-complete-transaction --cleanup-only -q
@@ -342,7 +342,6 @@ pre_install(){
 		fi
 	done
 
-	yum makecache -q
 	yum install asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel -q -y
 	ldconfig
 	wget -q https://bootstrap.pypa.io/get-pip.py
@@ -3434,6 +3433,7 @@ update(){
 			fi
 
 			mv -f autoboom.sh /usr/local/bin/autoboom
+			pre_check
 			echo "update success ^_^"
 			sed -i "s/shell_version $pre_version/shell_version $version/g" /var/autoboom/version.conf
 			rm -rf ./autoboom.sh
