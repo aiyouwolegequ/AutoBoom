@@ -330,9 +330,10 @@ pre_install(){
 	yum history redo last
 	rm -f /var/lib/rpm/__db*
 	rpm --rebuilddb
-	yum clean all
+	yum clean all -y
 	yum makecache
 	yum update -y
+	yum autoremove -y
 
 	for a in yum-plugin-fastestmirror yum-utils deltarpm
 	do
@@ -343,7 +344,12 @@ pre_install(){
 
 	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
 		yum groupinstall "Development Tools" -y
-		yum install asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel -y
+
+		for a in asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel
+		do
+			yum install $a -y
+		done
+
 		ldconfig
 		wget https://bootstrap.pypa.io/get-pip.py
 		python get-pip.py
@@ -418,7 +424,7 @@ updatesystem(){
 	yum upgrade -y
 	yum update -y
 	yum autoremove -y
-	yum makecache -q
+	yum makecache
 	yum-complete-transaction --cleanup-only -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
@@ -3378,7 +3384,7 @@ clearsystem(){
 	fi
 
 	yum autoremove -y
-	yum makecache -q
+	yum makecache
 	yum-complete-transaction --cleanup-only -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
