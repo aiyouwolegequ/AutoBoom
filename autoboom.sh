@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v4.3
-pre_install_version=v2.1
+shell_version=v5.0
+pre_install_version=v3.0
 
 rootness(){
 
@@ -18,7 +18,7 @@ check_shell(){
 		echo "错误:需要zsh！安装zsh中！"
 		rm -rf /var/run/yum.pid
 		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-		yum install zsh -q -y
+		yum install zsh -y
 		echo "zsh安装完毕！"
 	fi
 
@@ -268,7 +268,7 @@ pre_check(){
 
 	local pre_version=`cat /var/autoboom/version.conf | grep pre_install_version | awk '{print $2}'`
 
-	if [ -z "$pre_version"  ]; then
+	if [ -n "$pre_version"  ]; then
 		if [ "$pre_version" != "$pre_install_version" ]; then
 			sed -i "s/pre_install_version $pre_version/pre_install_version $pre_install_version/g" /var/autoboom/version.conf
 			set_sysctl
@@ -290,32 +290,33 @@ pre_install(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
-	LANG="en_US.UTF-8"
-
-	cat > /etc/resolv.conf<<-EOF
-	nameserver 1.1.1.1
-	EOF
-
-	cat > /etc/profile<<-EOF
-	export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
-	export LC_ALL=en_US.UTF-8
-	EOF
-
-	source /etc/profile
-	hostnamectl set-hostname ${IP}
-	rm -rf /var/run/yum.pid
 	
 	if [ ! -f "/etc/yum.conf.bak" ]; then
+		LANG="en_US.UTF-8"
+
+		cat > /etc/resolv.conf<<-EOF
+		nameserver 1.1.1.1
+		EOF
+
+		cat > /etc/profile<<-EOF
+		export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
+		export LC_ALL=en_US.UTF-8
+		EOF
+
+		source /etc/profile
+		hostnamectl set-hostname ${IP}
+		rm -rf /var/run/yum.pid
 		cp /etc/yum.conf /etc/yum.conf.bak
 		echo "minrate=1" >> /etc/yum.conf
 		echo "timeout=300" >> /etc/yum.conf
 		rm -rf /etc/yum.repos.d/CentOS-Base.repo.bak
 		mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-		wget -q -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo
+		wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo
+		wget -O /etc/yum.repos.d/epel-7.repo http://mirrors.aliyun.com/repo/epel-7.repo
 	fi
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release" ];then
-		wget -q https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
+		wget https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
 		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	fi
@@ -325,41 +326,42 @@ pre_install(){
 		rpm --quiet -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	fi
 
-	yum clean all -q
-	yum makecache -q
+	yum-complete-transaction --cleanup-only
+	yum history redo last
+	rm -f /var/lib/rpm/__db*
+	rpm --rebuilddb
+	yum clean all
+	yum makecache
+	yum update -y
 
-	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
-		yum groupinstall "Development Tools" -q -y
-	fi
-
-	yum-complete-transaction --cleanup-only -q
-	yum history redo last -q
-
-	for a in epel-release yum-plugin-fastestmirror yum-utils deltarpm
+	for a in yum-plugin-fastestmirror yum-utils deltarpm
 	do
 		if [ `rpm -qa | grep $a | wc -l` -eq 0 ];then
-			yum install $a -q -y
+			yum install $a -y
 		fi
 	done
 
-	yum install asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel -q -y
-	ldconfig
-	wget -q https://bootstrap.pypa.io/get-pip.py
-	python get-pip.py
-	python3 get-pip.py
-	python -m pip install -U pip -q
-	python -m pip install -U distribute -q
-	python3 -m pip install --upgrade pip -q
-	python -m pip install pycurl pygments dnspython gevent wafw00f censys selenium BeautifulSoup4 json2html tabulate configparser parse wfuzz feedparser greenlet -q
-	python3 -m pip install scrapy docopt twisted lxml parsel w3lib cryptography pyopenssl anubis-netsec plecost json2html tabulate -q
-	easy_install -q shodan
-	easy_install -q supervisor
-	updatedb
-	locate inittab
-	rm -rf get-pip.py
+	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
+		yum groupinstall "Development Tools" -y
+		yum install asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel -y
+		ldconfig
+		wget https://bootstrap.pypa.io/get-pip.py
+		python get-pip.py
+		python3 get-pip.py
+		python -m pip install -U pip
+		python -m pip install -U distribute
+		python3 -m pip install --upgrade pip
+		python -m pip install pycurl pygments dnspython gevent wafw00f censys selenium BeautifulSoup4 json2html tabulate configparser parse wfuzz feedparser greenlet
+		python3 -m pip install scrapy docopt twisted lxml parsel w3lib cryptography pyopenssl anubis-netsec plecost json2html tabulate
+		easy_install shodan
+		easy_install supervisor
+		updatedb
+		locate inittab
+		rm -rf get-pip.py
+	fi
 
 	if [ ! -f "/usr/local/lib/libsodium.so" ];then
-		wget -q --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+		wget --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
 		tar zxvf libsodium.tar.gz
 		pushd libsodium-stable
 		./configure
@@ -367,29 +369,31 @@ pre_install(){
 		popd
 		echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
 		ldconfig
+		rm -rf libsodium*
 	fi
 
 	if [ ! -d "/usr/include/mbedtls" ];then
-		wget -q --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
+		wget --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
 		tar xvf mbedtls-2.6.0-gpl.tgz
 		pushd mbedtls-2.6.0
 		make SHARED=1 CFLAGS=-fPIC
 		make DESTDIR=/usr install
 		popd
 		ldconfig
+		rm -rf mbedtls*
 	fi
 
 	if [ ! -f "/usr/local/lib/libevent.so" ];then
-		wget -q --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+		wget --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
 		tar zxvf libevent-2.1.8-stable.tar.gz
 		pushd libevent-2.1.8-stable
 		./configure
 		make && make install
 		popd
 		ldconfig
+		m -rf libevent*
 	fi
 
-	rm -rf libsodium* mbedtls* libevent*
 	clear
 	echo "#######################################################################"
 	echo ""
@@ -411,16 +415,16 @@ updatesystem(){
 	echo "请耐心等待！"
 	cd
 	rm -f /var/run/yum.pid
-	yum upgrade -q -y
-	yum update -q -y
-	yum autoremove -q -y
+	yum upgrade -y
+	yum update -y
+	yum autoremove -y
 	yum makecache -q
-	yum-complete-transaction --cleanup-only -q -y
+	yum-complete-transaction --cleanup-only -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
 	package-cleanup --problems
 	rpm --quiet -Va --nofiles --nodigest
-	yum clean all -q -y
+	yum clean all -y
 	rm -rf /var/cache/yum
 	rpm --quiet --rebuilddb
 	echo "#######################################################################"
@@ -443,7 +447,7 @@ updatekernel(){
 	echo "请耐心等待！"
 
 	if [ `rpm -qa | grep kernel-ml |wc -l` -ne 1 ];then
-		yum --enablerepo=elrepo-kernel install kernel-ml -q -y
+		yum --enablerepo=elrepo-kernel install kernel-ml -y
 	fi
 
 	egrep ^menuentry /etc/grub2.cfg | cut -f 2 -d \'
@@ -718,11 +722,11 @@ install_ckrootkit_rkhunter(){
 	cd
 
 	if [ ! -f "/bin/rkhunter" ]; then
-		yum install rkhunter -q -y
+		yum install rkhunter -y
 	fi
 
 	if [ ! -f "/usr/local/bin/chkrootkit" ]; then
-		wget -q --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
+		wget --tries=3 ftp://ftp.pangeia.com.br/pub/seg/pac/chkrootkit.tar.gz
 
 		if [ -a "chkrootkit.tar.gz" ]; then
 			tar zxf chkrootkit.tar.gz
@@ -786,7 +790,7 @@ install_aide(){
 	cd
 
 	if [ ! -f "/bin/aide" ]; then
-		yum install aide -q -y
+		yum install aide -y
 		aide --init
 		cp -rf /var/lib/aide/aide.db.new.gz /var/lib/aide/aide.db.gz
 	fi
@@ -813,7 +817,7 @@ install_fail2ban(){
 	echo "请稍等！"
 
 	if [ ! -f "/usr/bin/fail2ban-client" ]; then
-		yum install fail2ban fail2ban-firewalld fail2ban-systemd -q -y
+		yum install fail2ban fail2ban-firewalld fail2ban-systemd -y
 		cat > /etc/fail2ban/jail.local<<-EOF
 		[DEFAULT]
 		banaction = firewallcmd-ipset
@@ -860,7 +864,7 @@ install_lynis(){
 	cd
 
 	if [ ! -f "/usr/local/bin/lynis" ]; then
-		git clone -q https://github.com/CISOfy/lynis
+		git clone https://github.com/CISOfy/lynis
 
 		if [ -d "lynis" ]; then
 			mv lynis /usr/local/
@@ -912,17 +916,17 @@ install_zsh(){
 		echo "#######################################################################"
 		echo ""
 	else
-		yum install zsh -q -y
-		git clone -q --depth=1 https://github.com/robbyrussell/oh-my-zsh.git /root/.oh-my-zsh
+		yum install zsh -y
+		git clone --depth=1 https://github.com/robbyrussell/oh-my-zsh.git /root/.oh-my-zsh
 		cp /root/.oh-my-zsh/templates/zshrc.zsh-template ~/.zshrc
 		cd /root/.oh-my-zsh/themes
-		git clone -q https://github.com/dracula/zsh.git
+		git clone https://github.com/dracula/zsh.git
 		mv zsh/dracula.zsh-theme .
 		rm -rf zsh
 		cd /root/.oh-my-zsh/plugins
-		git clone -q https://github.com/zsh-users/zsh-syntax-highlighting.git
-		git clone -q https://github.com/zsh-users/zsh-autosuggestions.git
-		git clone -q https://github.com/zsh-users/zsh-history-substring-search.git
+		git clone https://github.com/zsh-users/zsh-syntax-highlighting.git
+		git clone https://github.com/zsh-users/zsh-autosuggestions.git
+		git clone https://github.com/zsh-users/zsh-history-substring-search.git
 
 		cat > /root/.zshrc <<-EOF
 		export ZSH=/root/.oh-my-zsh
@@ -1014,7 +1018,7 @@ install_shadowsocks(){
 	systemctl enable shadowsocks-libev.service
 	systemctl status shadowsocks-libev.service
 	systemctl -l | grep shadowsocks | awk '{print $1,$2,$3,$4}'
-	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/shadowsocks_bin.sh
+	wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/shadowsocks_bin.sh
 	chmod +x shadowsocks_bin.sh
 	./shadowsocks_bin.sh
 	rm -rf ./shadowsocks_bin.sh
@@ -1046,7 +1050,7 @@ install_pptp(){
 	echo "请稍等！"
 	pptpuser=`randusername`
 	pptppasswd=`randpasswd`
-	yum install pptpd -q -y
+	yum install pptpd -y
 	cp /etc/pptpd.conf /etc/pptpd.conf.bak
 
 	cat > /etc/pptpd.conf<<-EOF
@@ -1140,7 +1144,7 @@ install_l2tp(){
 	[ ! -z ${tmppassword} ] && password=${tmppassword}
 
 	any_key_to_continue
-	yum install libreswan xl2tpd -q -y
+	yum install libreswan xl2tpd -y
 	sysctl -p
 	systemctl start ipsec
 	systemctl start xl2tpd
@@ -1248,7 +1252,7 @@ install_l2tp(){
 	systemctl -l | grep ipsec | awk '{print $1,$2,$3,$4}'
 	systemctl -l | grep xl2tpd | awk '{print $1,$2,$3,$4}'
 	cd
-	wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/l2tp_bin.sh
+	wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/l2tp_bin.sh
 	chmod +x l2tp_bin.sh
 	./l2tp_bin.sh
 	rm -rf l2tp_bin.sh
@@ -1409,7 +1413,7 @@ install_supervisor(){
 			mainmenu
 		fi
 
-		wget -q  --tries=3 -O "$file" --no-check-certificate "$url"
+		wget --tries=3 -O "$file" --no-check-certificate "$url"
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -1498,7 +1502,7 @@ install_supervisor(){
 	fi
 
 	if [ -n "/etc/supervisor/supervisord.conf" ]; then
-		easy_install -U -q supervisor
+		easy_install -U supervisor
 		config_install_supervisor
 		download_startup_file
 	fi
@@ -1552,9 +1556,9 @@ install_vlmcsd(){
 		rm -f /usr/local/bin/vlmcsdmulti-x64-musl-static
 	fi
 
-	wget -q --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/vlmcsd.server
+	wget --tries=3 -O /usr/local/bin/vlmcsd --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/vlmcsd.server
 	chmod 0755 /usr/local/bin/vlmcsd
-	wget -q --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/vlmcsdmulti-x64-musl-static
+	wget --tries=3 -O /usr/local/bin/vlmcsdmulti-x64-musl-static --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/vlmcsdmulti-x64-musl-static
 	chmod 0755 /usr/local/bin/vlmcsdmulti-x64-musl-static
 
 	cat > /usr/lib/systemd/system/vlmcsd.service<<-EOF
@@ -1735,7 +1739,7 @@ install_kcptun(){
 
 	show_current_instance_info(){
 
-		wget -q --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/kcptun_bin.sh
+		wget --tries=3 https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/kcptun_bin.sh
 		chmod +x kcptun_bin.sh
 		./kcptun_bin.sh
 		rm -rf kcptun_bin.sh
@@ -1965,7 +1969,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-		wget -q --tries=3 -O "$file" --no-check-certificate "$url"
+		wget --tries=3 -O "$file" --no-check-certificate "$url"
 
 		if [ "$?" != "0" ] || [ -n "$verify_cmd" ] && ! verify_file; then
 			retry=$(expr $retry + 1)
@@ -2637,15 +2641,15 @@ install_kcptun(){
 	install_deps(){
 
 		if ! command_exists wget; then
-			sleep 3; yum -q -y install ca-certificates
+			sleep 3; yum -y install ca-certificates
 		fi
 
 		if ! command_exists awk; then
-			sleep 3; yum -q -y install gawk
+			sleep 3; yum -y install gawk
 		fi
 
 		if ! command_exists tar; then
-			sleep 3; yum -q -y install tar
+			sleep 3; yum -y install tar
 		fi
 
 		install_jq
@@ -2789,7 +2793,7 @@ install_kcptun(){
 			mainmenu
 		fi
 
-		content="$(wget -q --tries=3 -qO- --no-check-certificate "$url")"
+		content="$(wget --tries=3 -qO- --no-check-certificate "$url")"
 
 		if [ "$?" != "0" ] || [ -z "$content" ]; then
 			retry=$(expr $retry + 1)
@@ -3096,7 +3100,7 @@ install_dnscrypt(){
 	echo "请稍等！"
 	dnscrypt=`randusername`
 	cd
-	git clone -q --recursive git://github.com/cofyc/dnscrypt-wrapper.git
+	git clone --recursive git://github.com/cofyc/dnscrypt-wrapper.git
 	cd dnscrypt-wrapper
 	make configure
 	./configure
@@ -3142,9 +3146,9 @@ install_dnscrypt(){
 	systemctl start dnscrypt-wrapper
 	systemctl enable dnscrypt-wrapper
 	systemctl -l | grep dnscrypt-wrapper | awk '{print $1,$2,$3,$4}'
-	yum install dnsmasq -q -y
-	wget -q --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
-	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -q -y
+	yum install dnsmasq -y
+	wget --tries=3 http://members.home.nl/p.a.rombouts/pdnsd/releases/pdnsd-1.2.9a-par_sl6.x86_64.rpm
+	yum localinstall pdnsd-1.2.9a-par_sl6.x86_64.rpm -y
 	rm -rf pdnsd-1.2.9a-par_sl6.x86_64.rpm
 	cp /etc/pdnsd.conf.sample /etc/pdnsd.conf
 
@@ -3238,7 +3242,7 @@ install_vsftp(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
-	yum -q -y install vsftpd
+	yum -y install vsftpd
 	sed -i 's/^anonymous_enable=YES/anonymous_enable=NO/g' /etc/vsftpd/vsftpd.conf
 	echo chroot_local_user=YES >> /etc/vsftpd/vsftpd.conf
 	echo allow_writeable_chroot=YES >> /etc/vsftpd/vsftpd.conf
@@ -3294,13 +3298,13 @@ install_docker(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
-	yum remove docker docker-common docker-selinux docker-engine -q -y
-	yum install yum-utils device-mapper-persistent-data lvm2 -q -y
+	yum remove docker docker-common docker-selinux docker-engine -y
+	yum install yum-utils device-mapper-persistent-data lvm2 -y
 	yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 	yum-config-manager --enable docker-ce-edge
 	yum-config-manager --enable docker-ce-test
 	yum-config-manager --disable docker-ce-edge
-	yum install docker-ce -q -y
+	yum install docker-ce -y
 	systemctl start docker
 	systemctl -l | grep docker | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
@@ -3342,7 +3346,7 @@ install_proxychains4(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
-	git clone -q https://github.com/rofl0r/proxychains-ng.git /usr/src/proxychains-ng
+	git clone https://github.com/rofl0r/proxychains-ng.git /usr/src/proxychains-ng
 	cd /usr/src/proxychains-ng
 	./configure
 	make && make install
@@ -3373,14 +3377,14 @@ clearsystem(){
 		rm -rf ./autoboom.sh
 	fi
 
-	yum autoremove -q -y
+	yum autoremove -y
 	yum makecache -q
-	yum-complete-transaction --cleanup-only -q -y
+	yum-complete-transaction --cleanup-only -y
 	package-cleanup --dupes
 	package-cleanup --cleandupes
 	package-cleanup --problems
 	rpm --quiet -Va --nofiles --nodigest
-	yum clean all -q -y
+	yum clean all -y
 	rm -rf /var/cache/yum
 	rpm --quiet --rebuilddb
 	echo "#######################################################################"
@@ -3418,7 +3422,7 @@ install(){
 update(){
 
 	echo "Check for update..."
-	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
+	wget --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
 	chmod +x autoboom.sh
 	local version=`grep shell_version -m1 autoboom.sh | awk -F = '{print $2}'`
 
