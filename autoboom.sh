@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.0
-pre_install_version=v3.0
+shell_version=v5.1
+pre_install_version=v3.1
 
 rootness(){
 
@@ -367,7 +367,12 @@ pre_install(){
 	fi
 
 	if [ ! -f "/usr/local/lib/libsodium.so" ];then
-		wget --tries=3 -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+
+		while [ ! -f libsodium.tar.gz ] ;
+		do
+			wget -c -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+		done
+
 		tar zxvf libsodium.tar.gz
 		pushd libsodium-stable
 		./configure
@@ -379,7 +384,12 @@ pre_install(){
 	fi
 
 	if [ ! -d "/usr/include/mbedtls" ];then
-		wget --tries=3 https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
+
+		while [ ! -f mbedtls-2.6.0-gpl.tgz ] ;
+		do
+			wget -c https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
+		done
+
 		tar xvf mbedtls-2.6.0-gpl.tgz
 		pushd mbedtls-2.6.0
 		make SHARED=1 CFLAGS=-fPIC
@@ -390,7 +400,12 @@ pre_install(){
 	fi
 
 	if [ ! -f "/usr/local/lib/libevent.so" ];then
-		wget --tries=3 https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+
+		while [ ! -f libevent-2.1.8-stable.tar.gz ] ;
+		do
+			wget -c https://github.com/libevent/libevent/releases/download/release-2.1.8-stable/libevent-2.1.8-stable.tar.gz
+		done
+
 		tar zxvf libevent-2.1.8-stable.tar.gz
 		pushd libevent-2.1.8-stable
 		./configure
