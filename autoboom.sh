@@ -3790,7 +3790,7 @@ mainmenu(){
 	echo ""
 	echo "(0) 退出"
 	echo "(1) 默认全部安装"
-	echo "(2) 升级系统，#升级内核，清理系统"
+	echo "(2) 升级系统，升级内核，清理系统"
 	echo "(3) 更换root密码，新增ssh免密码验证用户"
 	echo "$a4"
 	echo "$a5"
