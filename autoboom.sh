@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.1
-pre_install_version=v3.1
+shell_version=v5.2
+pre_install_version=v3.2
 
 rootness(){
 
@@ -332,7 +332,7 @@ pre_install(){
 			yum install $a -y
 		fi
 	done
-	
+
 	yum-complete-transaction --cleanup-only
 	yum history redo last
 	rm -f /var/lib/rpm/__db*
