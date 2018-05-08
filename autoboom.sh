@@ -326,6 +326,13 @@ pre_install(){
 		rpm --quiet -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
 	fi
 
+	for a in yum-plugin-fastestmirror yum-utils deltarpm
+	do
+		if [ `rpm -qa | grep $a | wc -l` -eq 0 ];then
+			yum install $a -y
+		fi
+	done
+	
 	yum-complete-transaction --cleanup-only
 	yum history redo last
 	rm -f /var/lib/rpm/__db*
@@ -334,13 +341,6 @@ pre_install(){
 	yum makecache
 	yum update -y
 	yum autoremove -y
-
-	for a in yum-plugin-fastestmirror yum-utils deltarpm
-	do
-		if [ `rpm -qa | grep $a | wc -l` -eq 0 ];then
-			yum install $a -y
-		fi
-	done
 
 	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
 		yum groupinstall "Development Tools" -y
