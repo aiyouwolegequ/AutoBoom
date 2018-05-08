@@ -3443,7 +3443,7 @@ install(){
 update(){
 
 	echo "Check for update..."
-	wget --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
+	wget -q --tries=3 --no-check-certificate https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/autoboom.sh
 	chmod +x autoboom.sh
 	local version=`grep shell_version -m1 autoboom.sh | awk -F = '{print $2}'`
 
