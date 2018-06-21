@@ -15,7 +15,7 @@ list_users(){
         exit 1
     fi
 
-    cat /etc/shadowsocks-libev/config.json |grep -E "server_port|password|method"|awk '{print $1}'
+    cat /etc/shadowsocks-libev/config.json |grep -E "server_port|password|method|plugin_opts"|awk '{print $1}'
 }
 
 restart(){
