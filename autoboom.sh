@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.2
+shell_version=v5.3
 pre_install_version=v3.2
 
 rootness(){
@@ -1031,7 +1031,7 @@ install_shadowsocks(){
 	cat >/etc/sysconfig/shadowsocks-libev<<-EOF
 	START=yes
 	CONFFILE="/etc/shadowsocks-libev/config.json"
-	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1300 --reuse-port -d 8.8.8.8"
+	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1492 --reuse-port -d 8.8.8.8"
 	MAXFD=32768
 	EOF
 
