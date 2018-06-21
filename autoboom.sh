@@ -1,8 +1,8 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.4
-pre_install_version=v3.2
+shell_version=v5.5
+pre_install_version=v3.3
 
 rootness(){
 
@@ -140,15 +140,31 @@ set_sysctl(){
 	echo "net.ipv4.tcp_max_tw_buckets = 400000" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_keepalive_time = 1200" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_no_metrics_save = 1" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_rmem = 4096 87380 67108864" >> /etc/sysctl.conf
-	echo "net.ipv4.tcp_wmem = 4096 65536 67108864" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_rmem = 10240 87380 67108864" >> /etc/sysctl.conf
+	echo "net.ipv4.tcp_wmem = 10240 65536 67108864" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_mem = 25600 51200 102400" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_syn_retries = 2" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_synack_retries = 2" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_mtu_probing = 1" >> /etc/sysctl.conf
 	echo "net.ipv4.tcp_syncookies = 1" >> /etc/sysctl.conf
 	echo "vm.min_free_kbytes = 65536" >> /etc/sysctl.conf
-	echo "fs.file-max = 51200" >> /etc/sysctl.conf
+	echo "fs.file-max = 1024000" >> /etc/sysctl.conf
+
+	cat >> /etc/sysctl.conf<<-EOF
+	net.ipv4.conf.all.send_redirects = 0
+	net.ipv4.conf.default.send_redirects = 0
+	net.ipv4.conf.lo.send_redirects = 0
+	net.ipv4.conf.all.rp_filter = 0
+	net.ipv4.conf.default.rp_filter = 0
+	net.ipv4.conf.lo.rp_filter = 0
+	net.ipv4.icmp_echo_ignore_broadcasts = 1
+	net.ipv4.icmp_ignore_bogus_error_responses = 1
+	net.ipv4.tcp_tw_recycle = 0
+	net.ipv4.conf.all.accept_source_route = 1
+	net.ipv4.conf.default.accept_source_route = 1
+	net.ipv4.conf.all.accept_redirects = 0
+	net.ipv4.conf.default.accept_redirects = 0
+	EOF
 
 	for each in `ls /proc/sys/net/ipv4/conf/`;
 	do
@@ -157,6 +173,8 @@ set_sysctl(){
 		echo "net.ipv4.conf.${each}.send_redirects=0" >> /etc/sysctl.conf
 		echo "net.ipv4.conf.${each}.rp_filter=0" >> /etc/sysctl.conf
 	done
+
+	sysctl -e -p
 }
 
 any_key_to_continue(){
@@ -357,9 +375,8 @@ pre_install(){
 		python -m pip install -U pip
 		python -m pip install -U distribute
 		python3 -m pip install --upgrade pip
-		python -m pip install pycurl pygments dnspython gevent wafw00f censys selenium BeautifulSoup4 json2html tabulate configparser parse wfuzz feedparser greenlet
+		python -m pip install pycurl pygments dnspython gevent selenium BeautifulSoup4 json2html tabulate configparser parse feedparser greenlet
 		python3 -m pip install scrapy docopt twisted lxml parsel w3lib cryptography pyopenssl anubis-netsec plecost json2html tabulate
-		easy_install shodan
 		easy_install supervisor
 		updatedb
 		locate inittab
@@ -806,7 +823,13 @@ install_fail2ban(){
 	echo "请稍等！"
 
 	if [ ! -f "/usr/bin/fail2ban-client" ]; then
-		yum install fail2ban fail2ban-firewalld fail2ban-systemd -y
+		yum install fail2ban-firewalld -y
+
+		cat > /etc/fail2ban/jail_ssh.local<<-EOF
+		[sshd]
+		enabled = true
+		EOF
+
 		cat > /etc/fail2ban/jail.local<<-EOF
 		[DEFAULT]
 		banaction = firewallcmd-ipset
@@ -814,7 +837,7 @@ install_fail2ban(){
 		findtime = 600
 		maxretry = 3
 		backend = systemd
-		ignoreip = 127.0.0.1/8 172.16.18.0/24 202.59.250.200 202.64.170.26 210.92.18.82 210.92.18.73
+		ignoreip = 45.77.61.91 43.243.225.16 207.148.74.5 146.0.75.104 202.59.250.145 8.6.8.231 210.92.18.82 210.92.18.73
 		EOF
 
 		cat > /etc/fail2ban/jail.d/sshd.local<<-EOF
@@ -824,11 +847,13 @@ install_fail2ban(){
 		logpath  = /var/log/secure
 		EOF
 
+		systemctl restart firewalld.service
 		systemctl enable firewalld
-		systemctl start firewalld
-		systemctl enable fail2ban
-		systemctl start fail2ban
+		systemctl restart fail2ban.service
+		systemctl enable fail2ban.service
 		systemctl -l | grep fail2ban | awk '{print $1,$2,$3,$4}'
+		firewall-cmd --direct --get-all-rules
+		ipset list fail2ban-sshd
 	fi
 
 	fail2ban-client status sshd
@@ -978,6 +1003,9 @@ install_shadowsocks(){
 			;;
 	esac
 
+	pip install --upgrade pip
+	pip install m2crypto
+
 	wget -c -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
 	tar zxvf libsodium.tar.gz
 	pushd libsodium-stable
@@ -997,9 +1025,18 @@ install_shadowsocks(){
 	ldconfig
 	rm -rf mbedtls*
 
+	git clone https://github.com/shadowsocks/simple-obfs.git
+	cd simple-obfs
+	git submodule update --init --recursive
+	./autogen.sh
+	./configure && make
+	make install
+	popd
+	rm -rf simple-obfs
+
 	cd /etc/yum.repos.d/
 	curl -O https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
-	yum install shadowsocks-libev -y
+	yum install shadowsocks-libev rng-tools -y
 
 	cat >/etc/shadowsocks-libev/config.json<<-EOF
 	{
@@ -1008,7 +1045,9 @@ install_shadowsocks(){
 	"password":"${sspasswd}",
 	"nameserver": "1.1.1.1",
 	"timeout":"600",
-	"method":"aes-256-cfb"
+	"method":"aes-256-gcm",
+	"plugin":"obfs-server",
+	"plugin_opts":"obfs=tls"
 	}
 	EOF
 
