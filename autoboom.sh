@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.3
+shell_version=v5.4
 pre_install_version=v3.2
 
 rootness(){
@@ -364,39 +364,6 @@ pre_install(){
 		updatedb
 		locate inittab
 		rm -rf get-pip.py
-	fi
-
-	if [ ! -f "/usr/local/lib/libsodium.so" ];then
-
-		while [ ! -f libsodium.tar.gz ] ;
-		do
-			wget -c -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
-		done
-
-		tar zxvf libsodium.tar.gz
-		pushd libsodium-stable
-		./configure
-		make && make install
-		popd
-		echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
-		ldconfig
-		rm -rf libsodium*
-	fi
-
-	if [ ! -d "/usr/include/mbedtls" ];then
-
-		while [ ! -f mbedtls-2.6.0-gpl.tgz ] ;
-		do
-			wget -c https://tls.mbed.org/download/mbedtls-2.6.0-gpl.tgz
-		done
-
-		tar xvf mbedtls-2.6.0-gpl.tgz
-		pushd mbedtls-2.6.0
-		make SHARED=1 CFLAGS=-fPIC
-		make DESTDIR=/usr install
-		popd
-		ldconfig
-		rm -rf mbedtls*
 	fi
 
 	if [ ! -f "/usr/local/lib/libevent.so" ];then
@@ -1011,6 +978,25 @@ install_shadowsocks(){
 			;;
 	esac
 
+	wget -c -O libsodium.tar.gz https://download.libsodium.org/libsodium/releases/LATEST.tar.gz
+	tar zxvf libsodium.tar.gz
+	pushd libsodium-stable
+	./configure
+	make && make install
+	popd
+	echo /usr/local/lib > /etc/ld.so.conf.d/usr_local_lib.conf
+	ldconfig
+	rm -rf libsodium*
+
+	wget -c https://tls.mbed.org/download/mbedtls-2.11.0-gpl.tgz
+	tar xvf mbedtls-2.11.0-gpl.tgz
+	pushd mbedtls-2.11.0
+	make SHARED=1 CFLAGS=-fPIC
+	make DESTDIR=/usr install
+	popd
+	ldconfig
+	rm -rf mbedtls*
+
 	cd /etc/yum.repos.d/
 	curl -O https://copr.fedorainfracloud.org/coprs/librehat/shadowsocks/repo/epel-7/librehat-shadowsocks-epel-7.repo
 	yum install shadowsocks-libev -y
@@ -1019,10 +1005,8 @@ install_shadowsocks(){
 	{
 	"server":"0.0.0.0",
 	"server_port":"9999",
-	"local_port":1080,
-	"local_address":"127.0.0.1",
 	"password":"${sspasswd}",
-	"nameserver": "8.8.8.8",
+	"nameserver": "1.1.1.1",
 	"timeout":"600",
 	"method":"aes-256-cfb"
 	}
@@ -1031,7 +1015,7 @@ install_shadowsocks(){
 	cat >/etc/sysconfig/shadowsocks-libev<<-EOF
 	START=yes
 	CONFFILE="/etc/shadowsocks-libev/config.json"
-	DAEMON_ARGS="-u --fast-open --no-delay --mtu 1492 --reuse-port -d 8.8.8.8"
+	DAEMON_ARGS="-u -d 1.1.1.1 --fast-open --reuse-port --mtu 1492 --no-delay"
 	MAXFD=32768
 	EOF
 
