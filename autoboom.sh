@@ -1026,7 +1026,7 @@ install_shadowsocks(){
 	rm -rf mbedtls*
 
 	git clone https://github.com/shadowsocks/simple-obfs.git
-	cd simple-obfs
+	pushd simple-obfs
 	git submodule update --init --recursive
 	./autogen.sh
 	./configure && make
