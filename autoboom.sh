@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.6
+shell_version=v5.7
 pre_install_version=v3.3
 
 rootness(){
@@ -2083,11 +2083,11 @@ mainmenu(){
 	echo "$a7"
 	echo "$a8"
 	echo "$a9"
-	echo "$a10"
+	#echo "$a10"
 	echo "$a11"
 	echo "$a12"
-	echo "$a13"
-	echo "$a14"
+	#echo "$a13"
+	#echo "$a14"
 	echo "$a15"
 	echo "$a16"
 	echo "$a17"
