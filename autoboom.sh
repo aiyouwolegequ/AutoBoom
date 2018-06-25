@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v5.7
+shell_version=v5.8
 pre_install_version=v3.3
 
 rootness(){
@@ -327,16 +327,6 @@ pre_install(){
 		cp /etc/yum.conf /etc/yum.conf.bak
 		echo "minrate=1" >> /etc/yum.conf
 		echo "timeout=300" >> /etc/yum.conf
-		rm -rf /etc/yum.repos.d/CentOS-Base.repo.bak
-		mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak
-		wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.163.com/.help/CentOS7-Base-163.repo
-		wget -O /etc/yum.repos.d/epel-7.repo http://mirrors.aliyun.com/repo/epel-7.repo
-	fi
-
-	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release" ];then
-		wget https://raw.githubusercontent.com/aiyouwolegequ/AutoBoom/master/booooom/RPM-GPG-KEY-redhat-release -O /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release
-		rpm --quiet --import /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 	fi
 
 	if [ ! -f "/etc/pki/rpm-gpg/RPM-GPG-KEY-elrepo.org" ];then
@@ -362,6 +352,7 @@ pre_install(){
 
 	if [ $(yum grouplist installed | grep Tools | wc -l) != "1" ];then
 		yum groupinstall "Development Tools" -y
+		yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
 		for a in asciidoc autoconf automake bind-utils bzip2 bzip2-devel c-ares-devel curl finger gawk gcc gcc-c++ gettext git glibc-static iproute libcurl-devel libev-devel libevent-devel libffi-devel libstdc++-static libtool libtool-ltdl-devel lsof m2crypto make mlocate ncurses-devel net-tools openssl-devel patch pcre-devel policycoreutils-python ppp psmisc python-devel python-pip python-setuptools python34 python34-devel readline readline-devel ruby ruby-dev rubygems sqlite-devel swig sysstat tar tk-devel tree unzip vim wget xmlto zlib zlib-devel
 		do
