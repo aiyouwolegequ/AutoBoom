@@ -1649,9 +1649,28 @@ install_dnscrypt(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
-	firewall-cmd --permanent --add-port=5443/tcp
-	firewall-cmd --permanent --add-port=5443/udp
-	firewall-cmd --reload
+	local listen_port=5443
+	read -p "默认设置dnscrypt端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
+	case "$input" in
+		y|Y)
+			echo "#######################################################################"
+			echo ""
+			check_port
+			echo "#######################################################################"
+			echo ""
+			echo "更换默认端口为${listen_port}."
+			echo ""
+			echo "#######################################################################"
+			;;
+		*)
+			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then
+				firewall-cmd --permanent --add-port=5443/tcp
+				firewall-cmd --permanent --add-port=5443/udp
+				firewall-cmd --reload
+			fi
+			;;
+	esac
+
 	docker run --name=dnscrypt-server -p 5443:443/udp -p 5443:443/tcp --net=host \
 	jedisct1/dnscrypt-server init -N gov.us -E ${IP}:5443
 	docker start dnscrypt-server
@@ -1674,9 +1693,28 @@ install_brook(){
 	echo "#######################################################################"
 	echo "请稍等！"
 	brookpasswd=`randpasswd`
-	firewall-cmd --permanent --add-port=6443/tcp
-	firewall-cmd --permanent --add-port=6443/udp
-	firewall-cmd --reload
+	local listen_port=6443
+	read -p "默认设置brook端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
+	case "$input" in
+		y|Y)
+			echo "#######################################################################"
+			echo ""
+			check_port
+			echo "#######################################################################"
+			echo ""
+			echo "更换默认端口为${listen_port}."
+			echo ""
+			echo "#######################################################################"
+			;;
+		*)
+			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then
+				firewall-cmd --permanent --add-port=6443/tcp
+				firewall-cmd --permanent --add-port=6443/udp
+				firewall-cmd --reload
+			fi
+			;;
+	esac
+	
 	docker run --name=brook -d -e "ARGS=server -l :6060 -p ${brookpasswd}" -p 6443:6060/tcp -p 6443:6060/udp chenhw2/brook
 	docker start brook
 	docker update --restart=unless-stopped brook
