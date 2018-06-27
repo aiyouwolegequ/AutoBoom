@@ -1641,11 +1641,11 @@ install_docker(){
 	auto_continue
 }
 
-install_dnscrypt-proxy(){
+install_dnscrypt(){
 
 	echo "#######################################################################"
 	echo ""
-	echo "开始安装dnscrypt-proxy"
+	echo "开始安装dnscrypt"
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
@@ -1658,7 +1658,7 @@ install_dnscrypt-proxy(){
 	docker update --restart=unless-stopped dnscrypt-server
 	echo "#######################################################################"
 	echo ""
-	echo "dnscrypt-proxy安装完毕."
+	echo "dnscrypt安装完毕."
 	echo ""
 	echo "#######################################################################"
 	echo ""
@@ -1855,7 +1855,7 @@ install_all(){
 	install_docker
 	install_nmap_nc
 	install_proxychains4
-	install_dnscrypt-proxy
+	install_dnscrypt
 	install_brook
 	clearsystem
 	finally
@@ -2063,9 +2063,9 @@ mainmenu(){
 	fi
 
 	if [ `docker images | grep dnscrypt-server | wc -l` -eq 0 ] ; then
-		a10=`echo "(10) 安装dnscrypt-proxy"`
+		a10=`echo "(10) 安装dnscrypt"`
 	else
-		a10=`echo -e "(10) $a1已安装dnscrypt-proxy$a2"`
+		a10=`echo -e "(10) $a1已安装dnscrypt$a2"`
 	fi
 
 	if [ ! -e "/etc/supervisor/supervisord.conf" ]; then
@@ -2198,7 +2198,7 @@ mainmenu(){
 			mainmenu
 			;;
 		10)
-			install_dnscrypt-proxy
+			install_dnscrypt
 			mainmenu
 			;;
 		11)
