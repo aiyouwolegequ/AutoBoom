@@ -2209,6 +2209,10 @@ mainmenu(){
 			install_vlmcsd
 			mainmenu
 			;;
+		13)
+			install_brook
+			mainmenu
+			;;
 		15)
 			tunavailable
 			install_pptp
