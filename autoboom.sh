@@ -1629,6 +1629,7 @@ install_docker(){
 	yum-config-manager --enable docker-ce-test
 	yum-config-manager --disable docker-ce-edge
 	yum install docker-ce -y
+	systemctl enable docker
 	systemctl start docker
 	systemctl -l | grep docker | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
@@ -1638,6 +1639,59 @@ install_docker(){
 	echo "#######################################################################"
 	echo ""
 	auto_continue
+}
+
+install_dnscrypt-proxy(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装dnscrypt-proxy"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+	firewall-cmd --permanent --add-port=5443/tcp
+	firewall-cmd --permanent --add-port=5443/udp
+	firewall-cmd --reload
+	docker run --name=dnscrypt-server -p 5443:443/udp -p 5443:443/tcp --net=host \
+	jedisct1/dnscrypt-server init -N gov.us -E ${IP}:5443
+	docker start dnscrypt-server
+	docker update --restart=unless-stopped dnscrypt-server
+	echo "#######################################################################"
+	echo ""
+	echo "dnscrypt-proxy安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
+}
+
+install_brook(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装brook"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+	brookpasswd=`randpasswd`
+	firewall-cmd --permanent --add-port=6443/tcp
+	firewall-cmd --permanent --add-port=6443/udp
+	firewall-cmd --reload
+	docker run --name=brook -d -e "ARGS=server -l :6060 -p ${brookpasswd}" -p 6443:6060/tcp -p 6443:6060/udp chenhw2/brook
+	docker start brook
+	docker update --restart=unless-stopped brook
+	echo "#######################################################################"
+	echo ""
+	echo "brook安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	echo "brook的相关配置:"
+	echo -e "Password:\033[41;30m${brookpasswd}\033[0m"
+	echo -e "Port:\033[41;30m6443\033[0m"
+	echo ""
+	echo "#######################################################################"
+	any_key_to_continue
 }
 
 install_nmap_nc(){
@@ -1801,6 +1855,8 @@ install_all(){
 	install_docker
 	install_nmap_nc
 	install_proxychains4
+	install_dnscrypt-proxy
+	install_brook
 	clearsystem
 	finally
 }
@@ -2006,6 +2062,12 @@ mainmenu(){
 		a9=`echo -e "(9) $a1已安装l2tp$a2"`
 	fi
 
+	if [ `docker images | grep dnscrypt-server | wc -l` -eq 0 ] ; then
+		a10=`echo "(10) 安装dnscrypt-proxy"`
+	else
+		a10=`echo -e "(10) $a1已安装dnscrypt-proxy$a2"`
+	fi
+
 	if [ ! -e "/etc/supervisor/supervisord.conf" ]; then
 		a11=`echo "(11) 安装supervisor"`
 	else
@@ -2016,6 +2078,12 @@ mainmenu(){
 		a12=`echo "(12) 安装vlmcsd"`
 	else
 		a12=`echo -e "(12) $a1已安装vlmcsd$a2"`
+	fi
+
+	if [ `docker images | grep brook | wc -l` -eq 0 ] ; then
+		a13=`echo "(13) 安装brook"`
+	else
+		a13=`echo -e "(13) $a1已安装brook$a2"`
 	fi
 
 	if [ ! -e "/etc/ppp/options.pptpd" ]; then
@@ -2074,10 +2142,10 @@ mainmenu(){
 	echo "$a7"
 	echo "$a8"
 	echo "$a9"
-	#echo "$a10"
+	echo "$a10"
 	echo "$a11"
 	echo "$a12"
-	#echo "$a13"
+	echo "$a13"
 	#echo "$a14"
 	echo "$a15"
 	echo "$a16"
@@ -2127,6 +2195,10 @@ mainmenu(){
 		9)
 			tunavailable
 			install_l2tp
+			mainmenu
+			;;
+		10)
+			install_dnscrypt-proxy
 			mainmenu
 			;;
 		11)

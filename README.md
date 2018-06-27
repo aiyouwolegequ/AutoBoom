@@ -22,11 +22,10 @@ Usage: autoboom [option]
 (7) 安装zsh        
 (8) 安装shadowsocks        
 (9) 安装l2tp        
-(10) 安装v2ray        
+(10) 安装dnscrypt-server        
 (11) 安装supervisor        
 (12) 安装vlmcsd        
-(13) 安装kcptun        
-(14) 安装dnscrypt        
+(13) 安装brook         
 (15) 安装pptp        
 (16) 安装aide        
 (17) 安装vsftp       
@@ -71,19 +70,5 @@ shadowsocks -s 查看状态
 shadowsocks -r 重启服务        
 shadowsocks -l 查看配置        
 
-Kcptun 相关命令:        
-supervisorctl {start|stop|restart|status} kcptun        
-kcptun uninstall 卸载        
-kcptun update 检查更新        
-kcptun add 添加一个实例, 多端口加速        
-kcptun reconfig 重新配置实例        
-kcptun show 显示实例详细配置        
-kcptun log 显示实例日志        
-kcptun del 删除一个实例        
-若不指定 , 则默认为 1        
-
-Dnscrypt-Proxy 相关命令:        
-supervisorctl {start|stop|restart|status} dnscrypt-proxy        
-
-Dnscrypt-Wrapper 相关命令:        
-dnscrypt-wrapper --show-provider-publickey --provider-publickey-file public.key        
+Dnscrypt-Proxy 相关命令:       
+docker logs dnscrypt-server    
