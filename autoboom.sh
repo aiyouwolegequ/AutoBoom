@@ -1650,7 +1650,7 @@ install_dnscrypt(){
 	echo "#######################################################################"
 	echo "请稍等！"
 
-	if [ -n `command -v docker` ]; then
+	if [ -z `command -v docker` ]; then
 		echo "请先安装docker!"
 		any_key_to_continue
 		mainmenu
@@ -1703,7 +1703,7 @@ install_brook(){
 	echo "#######################################################################"
 	echo "请稍等！"
 
-	if [ -n `command -v docker` ]; then
+	if [ -z `command -v docker` ]; then
 		echo "请先安装docker!"
 		any_key_to_continue
 		mainmenu
@@ -1747,6 +1747,82 @@ install_brook(){
 	echo "brook的相关配置:"
 	echo -e "Password:\033[41;30m${brookpasswd}\033[0m"
 	echo -e "Port:\033[41;30m${listen_port}\033[0m"
+	echo ""
+	echo "#######################################################################"
+	any_key_to_continue
+}
+
+install_kcptun(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装kcptun"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+
+	if [ -z `command -v docker` ]; then
+		echo "请先安装docker!"
+		any_key_to_continue
+		mainmenu
+	elif [ ! -e "/etc/shadowsocks-libev/config.json" ]; then
+		echo "请先安装shadowsocks!"
+		any_key_to_continue
+		mainmenu
+	elif [ `systemctl -l | grep shadowsocks-libev.service | awk '{print $1,$2,$3,$4}' | grep running | wc -l` -eq 0 ]; then
+		systemctl enable shadowsocks-libev.service
+		systemctl restart shadowsocks-libev.service
+	fi
+
+	kcppasswd=`randpasswd`
+	ss_port=`shadowsocks -l | grep port | awk -F "\"" '{print $4}'`
+	local listen_port=8443
+	read -p "默认设置kcptun端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
+	case "$input" in
+		y|Y)
+			echo "#######################################################################"
+			echo ""
+			check_port
+			echo "#######################################################################"
+			echo ""
+			echo "更换默认端口为${listen_port}."
+			echo ""
+			echo "#######################################################################"
+			;;
+		*)
+			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then
+				firewall-cmd --permanent --add-port=${listen_port}/tcp
+				firewall-cmd --permanent --add-port=${listen_port}/udp
+				firewall-cmd --reload
+			fi
+			;;
+	esac
+
+	docker run --name kcptun -d -p ${listen_port}:${listen_port} xtaci/kcptun server -t 0.0.0.0:${ss_port} -l :${listen_port} -key ${kcppasswd} -mtu 1350 -mode fast3
+	docker start kcptun
+	docker update --restart=unless-stopped kcptun
+	echo "#######################################################################"
+	echo ""
+	echo "kcptun安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	echo "kcptun的相关配置:"
+	echo -e "password:\033[41;30m${kcppasswd}\033[0m"
+	echo -e "port:\033[41;30m${listen_port}\033[0m"
+	echo -e "encryption:\033[41;30maes\033[0m"
+	echo -e "mode:\033[41;30mfast3\033[0m"
+	echo -e "sndwnd:\033[41;30m1024\033[0m"
+	echo -e "rcvwnd:\033[41;30m1024\033[0m"
+	echo -e "acknodelay:\033[41;30mfalse\033[0m"
+	echo -e "compression:\033[41;30mture\033[0m"
+	echo -e "mtu:\033[41;30m1350\033[0m"
+	echo -e "datashard:\033[41;30m10\033[0m"
+	echo -e "parityshard:\033[41;30m3\033[0m"
+	echo -e "dscp:\033[41;30m0\033[0m"
+	echo -e "keepalive:\033[41;30m10\033[0m"
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
@@ -2120,10 +2196,12 @@ mainmenu(){
 		a9=`echo -e "(9) $a1已安装l2tp$a2"`
 	fi
 
-	if [ `docker images | grep dnscrypt-server | wc -l` -eq 0 ] ; then
+	if [ -z `command -v docker` ]; then
 		a10=`echo "(10) 安装dnscrypt"`
-	else
+	elif [ `docker images | grep dnscrypt-server | wc -l` -eq 1 ] ; then
 		a10=`echo -e "(10) $a1已安装dnscrypt$a2"`
+	else
+		a10=`echo "(10) 安装dnscrypt"`
 	fi
 
 	if [ ! -e "/etc/supervisor/supervisord.conf" ]; then
@@ -2138,10 +2216,20 @@ mainmenu(){
 		a12=`echo -e "(12) $a1已安装vlmcsd$a2"`
 	fi
 
-	if [ `docker images | grep brook | wc -l` -eq 0 ] ; then
+	if [ -z `command -v docker` ]; then
 		a13=`echo "(13) 安装brook"`
-	else
+	elif [ `docker images | grep brook | wc -l` -eq 1 ] ; then
 		a13=`echo -e "(13) $a1已安装brook$a2"`
+	else
+		a13=`echo "(13) 安装brook"`
+	fi
+
+	if [ -z `command -v docker` ]; then
+		a14=`echo "(14) 安装kcptun"`
+	elif [ `docker images | grep kcptun | wc -l` -eq 1 ] ; then
+		a14=`echo -e "(14) $a1已安装kcptun$a2"`
+	else
+		a14=`echo "(14) 安装kcptun"`
 	fi
 
 	if [ ! -e "/etc/ppp/options.pptpd" ]; then
@@ -2204,7 +2292,7 @@ mainmenu(){
 	echo "$a11"
 	echo "$a12"
 	echo "$a13"
-	#echo "$a14"
+	echo "$a14"
 	echo "$a15"
 	echo "$a16"
 	echo "$a17"
@@ -2271,6 +2359,10 @@ mainmenu(){
 			install_brook
 			mainmenu
 			;;
+		14)
+			install_kcptun
+			mainmenu
+			;;		
 		15)
 			tunavailable
 			install_pptp
