@@ -22,7 +22,7 @@ Usage: autoboom [option]
 (7) 安装zsh        
 (8) 安装shadowsocks        
 (9) 安装l2tp        
-(10) 安装dnscrypt-server        
+(10) 安装dnscrypt        
 (11) 安装supervisor        
 (12) 安装vlmcsd        
 (13) 安装brook         
