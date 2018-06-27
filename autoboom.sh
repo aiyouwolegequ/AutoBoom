@@ -1651,7 +1651,7 @@ install_dnscrypt(){
 	echo "请稍等！"
 
 	if [ -n `command -v docker` ]; then
-		echo "请先安装docker\!"
+		echo "请先安装docker!"
 		any_key_to_continue
 		mainmenu
 	elif [ `systemctl -l | grep docker.service | awk '{print $1,$2,$3,$4}' | grep running | wc -l` -eq 0 ]; then
@@ -1704,7 +1704,7 @@ install_brook(){
 	echo "请稍等！"
 
 	if [ -n `command -v docker` ]; then
-		echo "请先安装docker\!"
+		echo "请先安装docker!"
 		any_key_to_continue
 		mainmenu
 	elif [ `systemctl -l | grep docker.service | awk '{print $1,$2,$3,$4}' | grep running | wc -l` -eq 0 ]; then
