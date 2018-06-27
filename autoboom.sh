@@ -1629,9 +1629,9 @@ install_docker(){
 	yum-config-manager --enable docker-ce-test
 	yum-config-manager --disable docker-ce-edge
 	yum install docker-ce -y
-	systemctl enable docker
 	systemctl start docker
-	systemctl -l | grep docker | awk '{print $1,$2,$3,$4}'
+	systemctl enable docker
+	systemctl -l | grep docker.service | awk '{print $1,$2,$3,$4}'
 	echo "#######################################################################"
 	echo ""
 	echo "docker安装完毕."
@@ -1649,6 +1649,16 @@ install_dnscrypt(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
+
+	if [ -n `command -v docker` ]; then
+		echo "请先安装docker\!"
+		any_key_to_continue
+		mainmenu
+	elif [ `systemctl -l | grep docker.service | awk '{print $1,$2,$3,$4}' | grep running | wc -l` -eq 0 ]; then
+		systemctl enable docker
+		systemctl restart docker
+	fi
+
 	local listen_port=5443
 	read -p "默认设置dnscrypt端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
 	case "$input" in
@@ -1664,14 +1674,14 @@ install_dnscrypt(){
 			;;
 		*)
 			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then
-				firewall-cmd --permanent --add-port=5443/tcp
-				firewall-cmd --permanent --add-port=5443/udp
+				firewall-cmd --permanent --add-port=${listen_port}/tcp
+				firewall-cmd --permanent --add-port=${listen_port}/udp
 				firewall-cmd --reload
 			fi
 			;;
 	esac
 
-	docker run --name=dnscrypt-server -p 5443:443/udp -p 5443:443/tcp --net=host \
+	docker run --name=dnscrypt-server -p ${listen_port}:443/udp -p ${listen_port}:443/tcp --net=host \
 	jedisct1/dnscrypt-server init -N gov.us -E ${IP}:5443
 	docker start dnscrypt-server
 	docker update --restart=unless-stopped dnscrypt-server
@@ -1692,6 +1702,16 @@ install_brook(){
 	echo ""
 	echo "#######################################################################"
 	echo "请稍等！"
+
+	if [ -n `command -v docker` ]; then
+		echo "请先安装docker\!"
+		any_key_to_continue
+		mainmenu
+	elif [ `systemctl -l | grep docker.service | awk '{print $1,$2,$3,$4}' | grep running | wc -l` -eq 0 ]; then
+		systemctl enable docker
+		systemctl restart docker
+	fi
+
 	brookpasswd=`randpasswd`
 	local listen_port=6443
 	read -p "默认设置brook端口为${listen_port}，是否需要更换端口? (y/n) [默认=n]:" input
@@ -1708,14 +1728,14 @@ install_brook(){
 			;;
 		*)
 			if [ `firewall-cmd --list-ports | grep ${listen_port} |wc -l` -ne 1 ]; then
-				firewall-cmd --permanent --add-port=6443/tcp
-				firewall-cmd --permanent --add-port=6443/udp
+				firewall-cmd --permanent --add-port=${listen_port}/tcp
+				firewall-cmd --permanent --add-port=${listen_port}/udp
 				firewall-cmd --reload
 			fi
 			;;
 	esac
 	
-	docker run --name=brook -d -e "ARGS=server -l :6060 -p ${brookpasswd}" -p 6443:6060/tcp -p 6443:6060/udp chenhw2/brook
+	docker run --name=brook -d -e "ARGS=server -l :6060 -p ${brookpasswd}" -p ${listen_port}:6060/tcp -p ${listen_port}:6060/udp chenhw2/brook
 	docker start brook
 	docker update --restart=unless-stopped brook
 	echo "#######################################################################"
@@ -1726,7 +1746,7 @@ install_brook(){
 	echo ""
 	echo "brook的相关配置:"
 	echo -e "Password:\033[41;30m${brookpasswd}\033[0m"
-	echo -e "Port:\033[41;30m6443\033[0m"
+	echo -e "Port:\033[41;30m${listen_port}\033[0m"
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
