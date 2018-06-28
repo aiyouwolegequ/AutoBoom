@@ -2516,11 +2516,11 @@ mainmenu(){
 	fi
 
 	if [ -z `command -v docker` ]; then
-		a22=`echo "(14) 安装v2ray"`
+		a22=`echo "(22) 安装v2ray"`
 	elif [ `docker images | grep v2ray | wc -l` -eq 1 ] ; then
-		a22=`echo -e "(14) $a1已安装v2ray$a2"`
+		a22=`echo -e "(22) $a1已安装v2ray$a2"`
 	else
-		a22=`echo "(14) 安装v2ray"`
+		a22=`echo "(22) 安装v2ray"`
 	fi
 
 	echo "#######################################################################"
