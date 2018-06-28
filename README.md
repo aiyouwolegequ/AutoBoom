@@ -33,6 +33,7 @@ Usage: autoboom [option]
 (19) 安装docker                 
 (20) 安装nmaphenc         
 (21) 安装proxychains4             
+(21) 安装v2ray             
 
 Supervisor 相关命令:        
 service supervisord {start|stop|restart|status}        
@@ -70,5 +71,5 @@ shadowsocks -s 查看状态
 shadowsocks -r 重启服务        
 shadowsocks -l 查看配置        
 
-Dnscrypt-Proxy 相关命令:       
-docker logs dnscrypt-server    
+Dnscrypt 相关命令:       
+docker logs dnscrypt    
