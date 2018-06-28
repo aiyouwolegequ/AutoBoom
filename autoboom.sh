@@ -1681,10 +1681,10 @@ install_dnscrypt(){
 			;;
 	esac
 
-	docker run --name=dnscrypt-server -p ${listen_port}:443/udp -p ${listen_port}:443/tcp --net=host \
+	docker run --name=dnscrypt -p ${listen_port}:443/udp -p ${listen_port}:443/tcp --net=host \
 	jedisct1/dnscrypt-server init -N gov.us -E ${IP}:5443
-	docker start dnscrypt-server
-	docker update --restart=unless-stopped dnscrypt-server
+	docker start dnscrypt
+	docker update --restart=unless-stopped dnscrypt
 	echo "#######################################################################"
 	echo ""
 	echo "dnscrypt安装完毕."
@@ -1823,6 +1823,246 @@ install_kcptun(){
 	echo -e "parityshard:\033[41;30m3\033[0m"
 	echo -e "dscp:\033[41;30m0\033[0m"
 	echo -e "keepalive:\033[41;30m10\033[0m"
+	echo ""
+	echo "#######################################################################"
+	any_key_to_continue
+}
+
+install_v2ray(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装v2ray"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+
+	if [ -z `command -v docker` ]; then
+		echo "请先安装docker!"
+		any_key_to_continue
+		mainmenu
+	elif [ `systemctl -l | grep docker.service | awk '{print $1,$2,$3,$4}' | grep running | wc -l` -eq 0 ]; then
+		systemctl enable docker
+		systemctl restart docker
+	fi
+
+	if [ -z `command -v docker-compose` ]; then
+		curl -L https://github.com/docker/compose/releases/download/1.22.0-rc1/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+		chmod +x /usr/local/bin/docker-compose
+	fi
+
+	local domain=
+	local email=
+	local input=
+
+	read -p "(请输入域名): " input
+		if [ -n "$input" ]; then
+			domain="$input"
+		else
+			domain=www.google.com
+		fi
+
+	read -p "(请输入邮箱): " input
+		if [ -n "$input" ]; then
+			domain="$input"
+		else
+			email=no-reply@accounts.google.com
+		fi
+
+	uuid=`cat /proc/sys/kernel/random/uuid`
+	mkdir -p /opt/v2ray/v2ray_logs
+	mkdir -p /opt/v2ray/nginx/vhost.d
+	mkdir -p /etc/v2ray
+	cd /opt/v2ray
+
+	if [ ! -f "nginx.tmpl" ]; then
+		curl -L https://raw.githubusercontent.com/jwilder/nginx-proxy/master/nginx.tmpl > /opt/v2ray/nginx.tmpl
+		firewall-cmd --permanent --remove-service=dhcpv6-client
+		firewall-cmd --permanent --add-service=http
+		firewall-cmd --permanent --add-service=https
+		firewall-cmd --reload
+	fi
+
+	cat > /etc/v2ray/config.json<<-EOF
+	{
+		"log": {
+			"access": "/var/log/v2ray/access.log",
+			"error": "/var/log/v2ray/error.log",
+			"loglevel": "warning"
+		},
+		"inbound": {
+			"port": 19487,
+			"protocol": "vmess",
+			"settings": {
+				"clients": [
+					{
+						"id": "${uuid}",
+						"level": 1,
+						"alterId": 9487
+					}
+				]
+			},
+			"streamSettings": {
+				"network": "ws",
+				"wsSettings": {
+					"connectionReuse": false,
+					"path": "/"
+					}
+			},
+			"detour": {
+				"to": "vmess-detour"
+			}
+		},
+		"outbound": {
+			"protocol": "freedom",
+			"settings": {}
+		},
+		"inboundDetour": [
+			{
+				"protocol": "vmess",
+				"port": "45000-45999",
+				"tag": "vmess-detour",
+				"settings": {},
+				"allocate": {
+					"strategy": "random",
+					"concurrency": 5,
+					"refresh": 5
+				},
+				"streamSettings": {
+					"network": "ws",
+					"wsSettings": {
+						"connectionReuse": false,
+						"path": "/"
+					}
+				}
+			}
+		],
+		"outboundDetour": [
+			{
+				"protocol": "blackhole",
+				"settings": {},
+				"tag": "blocked"
+			}
+		],
+		"routing": {
+			"strategy": "rules",
+			"settings": {
+				"rules": [{
+					"type": "field",
+					"ip": [
+						"0.0.0.0/8",
+						"10.0.0.0/8",
+						"100.64.0.0/10",
+						"127.0.0.0/8",
+						"169.254.0.0/16",
+						"172.16.0.0/12",
+						"192.0.0.0/24",
+						"192.0.2.0/24",
+						"192.168.0.0/16",
+						"198.18.0.0/15",
+						"198.51.100.0/24",
+						"203.0.113.0/24",
+						"::1/128",
+						"fc00::/7",
+						"fe80::/10"
+					],
+					"outboundTag": "blocked"
+				}]
+			}
+		}
+	}
+	EOF
+
+	cat > /opt/v2ray/docker-compose.yml<<-EOF
+	version: '3'
+	services:
+	  v2ray:
+	    container_name: v2ray
+	    image: v2ray/official
+	    restart: unless-stopped
+	    command: v2ray -config=/etc/v2ray/config.json
+	    expose:
+	      - "19487"
+	    ports:
+	      - "19487:19487"
+	      - "19487:19487/udp"
+	    volumes:
+	      - /opt/v2ray/v2ray_logs:/var/log/v2ray/
+	      - /etc/v2ray:/etc/v2ray/
+	    environment:
+	      - "VIRTUAL_HOST=${domain}"
+	      - "VIRTUAL_PORT=19487"
+	      - "LETSENCRYPT_HOST=${domain}"
+	      - "LETSENCRYPT_EMAIL=${email}"
+
+	  nginx:
+	    image: nginx
+	    labels:
+	      com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy: "true"
+	    container_name: nginx
+	    restart: unless-stopped
+	    ports:
+	      - "80:80"
+	      - "443:443"
+	    volumes:
+	      - /opt/v2ray/nginx/conf.d:/etc/nginx/conf.d
+	      - /opt/v2ray/nginx/vhost.d:/etc/nginx/vhost.d
+	      - /opt/v2ray/nginx/html:/usr/share/nginx/html
+	      - /opt/v2ray/nginx/certs:/etc/nginx/certs:ro
+
+	  nginx-gen:
+	    image: jwilder/docker-gen
+	    command: -notify-sighup nginx -watch -wait 5s:30s /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf
+	    container_name: nginx-gen
+	    restart: unless-stopped
+	    volumes:
+	      - /opt/v2ray/nginx/conf.d:/etc/nginx/conf.d
+	      - /opt/v2ray/nginx/vhost.d:/etc/nginx/vhost.d
+	      - /opt/v2ray/nginx/html:/usr/share/nginx/html
+	      - /opt/v2ray/nginx/certs:/etc/nginx/certs:ro
+	      - /var/run/docker.sock:/tmp/docker.sock:ro
+	      - /opt/v2ray/nginx.tmpl:/etc/docker-gen/templates/nginx.tmpl:ro
+
+	  nginx-letsencrypt:
+	    image: jrcs/letsencrypt-nginx-proxy-companion
+	    container_name: nginx-letsencrypt
+	    restart: unless-stopped
+	    volumes:
+	      - /opt/v2ray/nginx/conf.d:/etc/nginx/conf.d
+	      - /opt/v2ray/nginx/vhost.d:/etc/nginx/vhost.d
+	      - /opt/v2ray/nginx/html:/usr/share/nginx/html
+	      - /opt/v2ray/nginx/certs:/etc/nginx/certs:rw
+	      - /var/run/docker.sock:/var/run/docker.sock:ro
+	    environment:
+	      NGINX_DOCKER_GEN_CONTAINER: "nginx-gen"
+	      NGINX_PROXY_CONTAINER: "nginx"
+	EOF
+
+	cat > /opt/v2ray/nginx/vhost.d/${domain}_location<<-EOF
+	proxy_redirect off;
+	proxy_http_version 1.1;
+	proxy_set_header Upgrade \$http_upgrade;
+	proxy_set_header Connection "upgrade";
+	proxy_set_header Host \$http_host;
+	if (\$http_upgrade = "websocket" ) {
+	    proxy_pass http://v2ray:19487;
+	}
+	EOF
+
+	docker-compose up -d
+	echo "#######################################################################"
+	echo ""
+	echo "v2ray安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	echo "v2ray的相关配置:"
+	echo -e "User ID:\033[41;30m${uuid}\033[0m"
+	echo -e "alterId:\033[41;30m9487\033[0m"
+	echo -e "Port:\033[41;30m443\033[0m"
+	echo -e "Security:\033[41;30maes-128-cfb\033[0m"
+	echo -e "Network:\033[41;30mwebsocket\033[0m"
+	echo -e "path:\033[41;30m/\033[0m"
 	echo ""
 	echo "#######################################################################"
 	any_key_to_continue
@@ -2159,6 +2399,7 @@ mainmenu(){
 	local a19=
 	local a20=
 	local a21=
+	local a22=
 
 	if [ ! -f "/bin/rkhunter" ] && [ ! -f "/usr/local/bin/chkrootkit" ]; then
 		a4=`echo "(4) 安装ckrootkit和rkhunter"`
@@ -2274,6 +2515,14 @@ mainmenu(){
 		a21=`echo -e "(21) $a1已安装proxychains4$a2"`
 	fi
 
+	if [ -z `command -v docker` ]; then
+		a22=`echo "(14) 安装v2ray"`
+	elif [ `docker images | grep v2ray | wc -l` -eq 1 ] ; then
+		a22=`echo -e "(14) $a1已安装v2ray$a2"`
+	else
+		a22=`echo "(14) 安装v2ray"`
+	fi
+
 	echo "#######################################################################"
 	echo ""
 	echo "进入正式安装......"
@@ -2300,6 +2549,7 @@ mainmenu(){
 	echo "$a19"
 	echo "$a20"
 	echo "$a21"
+	echo "$a22"
 	echo ""
 	echo "#######################################################################"
 
@@ -2392,6 +2642,10 @@ mainmenu(){
 			install_proxychains4
 			mainmenu
 			;;
+		22)
+			install_v2ray
+			mainmenu
+			;;		
 		*)
 			install_all
 			mainmenu
