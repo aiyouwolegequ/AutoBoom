@@ -53,7 +53,7 @@ rkhunter --check --sk | grep Warning
 
 Fail2ban 相关命令:        
 fail2ban-client status sshd 查看被屏蔽的IP列表        
-fail2ban-client set ssh unbanip x.x.x.x 解除被屏蔽IP             
+fail2ban-client set sshd unbanip x.x.x.x 解除被屏蔽IP             
 
 Lynis 相关命令:        
 lynis update info        
