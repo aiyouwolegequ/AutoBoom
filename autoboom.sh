@@ -1,7 +1,7 @@
 #!/bin/bash
 export PATH=$PATH:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 
-shell_version=v6.0
+shell_version=v6.1
 pre_install_version=v3.4
 
 rootness(){
@@ -1695,6 +1695,67 @@ install_dnscrypt(){
 	any_key_to_continue
 }
 
+install_dns(){
+
+	echo "#######################################################################"
+	echo ""
+	echo "开始安装dns"
+	echo ""
+	echo "#######################################################################"
+	echo "请稍等！"
+
+	yum install bind -y
+	systemctl start named
+	cat > /etc/named.conf <<-EOF
+	options {
+			listen-on port 53 { any; };
+			listen-on-v6 port 53 { none; };
+			directory "/var/named";
+			dump-file "/var/named/data/cache_dump.db";
+			statistics-file "/var/named/data/named_stats.txt";
+			memstatistics-file "/var/named/data/named_mem_stats.txt";
+			allow-query { any; };
+			allow-recursion { any; };
+
+			forwarders {
+				8.8.4.4;
+				8.8.8.8;
+			};
+			forward only;
+			recursion yes;
+			dnssec-enable yes;
+			dnssec-validation yes;
+			bindkeys-file "/etc/named.iscdlv.key";
+			managed-keys-directory "/var/named/dynamic";
+			pid-file "/run/named/named.pid";
+			session-keyfile "/run/named/session.key";
+	};
+
+	logging {
+			channel query_log {
+				file "data/query.log" versions 100 size 500m;
+				severity debug 3;
+				print-time yes;
+				print-category  yes;
+			};
+			category queries {
+				query_log;
+			};
+	};
+	EOF
+
+	systemctl restart named
+	firewall-cmd --permanent --add-service=dns
+	firewall-cmd --reload
+	echo "#######################################################################"
+	echo ""
+	echo "dns安装完毕."
+	echo ""
+	echo "#######################################################################"
+	echo ""
+	any_key_to_continue
+}
+
 install_brook(){
 
 	echo "#######################################################################"
@@ -2232,6 +2293,7 @@ install_all(){
 	install_proxychains4
 	install_dnscrypt
 	install_brook
+	install_dns
 	clearsystem
 	finally
 }
@@ -2401,6 +2463,7 @@ mainmenu(){
 	local a20=
 	local a21=
 	local a22=
+	local a23=
 
 	if [ ! -f "/bin/rkhunter" ] && [ ! -f "/usr/local/bin/chkrootkit" ]; then
 		a4=`echo "(4) 安装ckrootkit和rkhunter"`
@@ -2524,6 +2587,12 @@ mainmenu(){
 		a22=`echo "(22) 安装v2ray"`
 	fi
 
+	if [ -z `command -v named` ]; then
+		a23=`echo "(21) 安装dns"`
+	else
+		a23=`echo -e "(21) $a1已安装dns$a2"`
+	fi
+
 	echo "#######################################################################"
 	echo ""
 	echo "进入正式安装......"
@@ -2551,6 +2620,7 @@ mainmenu(){
 	echo "$a20"
 	echo "$a21"
 	echo "$a22"
+	echo "$a23"
 	echo ""
 	echo "#######################################################################"
 
@@ -2646,7 +2716,11 @@ mainmenu(){
 		22)
 			install_v2ray
 			mainmenu
-			;;		
+			;;
+		23)
+			install_dns
+			mainmenu
+			;;				
 		*)
 			install_all
 			mainmenu
