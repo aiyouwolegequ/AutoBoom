@@ -2588,9 +2588,9 @@ mainmenu(){
 	fi
 
 	if [ -z `command -v named` ]; then
-		a23=`echo "(21) 安装dns"`
+		a23=`echo "(23) 安装dns"`
 	else
-		a23=`echo -e "(21) $a1已安装dns$a2"`
+		a23=`echo -e "(23) $a1已安装dns$a2"`
 	fi
 
 	echo "#######################################################################"
